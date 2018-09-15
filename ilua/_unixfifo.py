@@ -8,11 +8,11 @@ class UnixFifo(object):
         self.path = os.path.join(jupyter_runtime_dir(),
                                  "{}_{}".format(name_suffix,
                                                 os.getpgid()))
-        self.pipe = os.mkfifo(self.path)
-    
+        # TODO: WRONG! self.pipe = os.mkfifo(self.path)
+
     def connect(self):
         pass # TODO: echo..
-    
+
     def close(self):
         self.pipe.close()
         os.remove(self.path)
