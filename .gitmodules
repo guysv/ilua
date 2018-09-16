@@ -1,0 +1,6 @@
+[submodule "ilua/lualibs/netstring.lua"]
+	path = ilua/lualibs/netstring.lua
+	url = https://github.com/guysv/netstring.lua.git
+[submodule "ilua/lualibs/json.lua"]
+	path = ilua/lualibs/json.lua
+	url = https://github.com/rxi/json.lua.git
