@@ -4,7 +4,10 @@ import win32pipe
 import win32con
 import win32security
 
-class Win32NamedPipe(object):
+from .pipebase import PipeBase
+from .netstrio import NetstringIO
+
+class NamedPipe(PipeBase):
     def __init__(self, name_suffix, outbound):
         self.path = ur"\\.\pipe\{}_{}".format(name_suffix, os.getpid())
 
@@ -23,11 +26,10 @@ class Win32NamedPipe(object):
         fd = msvcrt.open_osfhandle(int(self._handle), direction)
 
         direction = "wb" if outbound else "rb"
-        self.stream = os.fdopen(fd, direction)
+        self.stream = NetstringIO.cast(os.fdopen(fd, direction))
 
     def connect(self):
         win32pipe.ConnectNamedPipe(self._handle, None)
-        # TODO: echo routine?
 
     def close():
         self._handle.close()
