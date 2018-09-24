@@ -26,7 +26,7 @@ class NamedPipe(PipeBase):
         fd = msvcrt.open_osfhandle(int(self._handle), direction)
 
         direction = "wb" if outbound else "rb"
-        self.stream = NetstringIO.cast(os.fdopen(fd, direction))
+        self.stream = NetstringIO(os.fdopen(fd, direction))
 
     def connect(self):
         win32pipe.ConnectNamedPipe(self._handle, None)

@@ -9,15 +9,14 @@ class Fifo(PipeBase):
     def __init__(self, name_suffix, outbound):
         self.path = os.path.join(jupyter_runtime_dir(),
                                  "{}_{}".format(name_suffix,
-                                                os.getpgid()))
+                                                os.getpid()))
         
         os.mkfifo(self.path)
 
-        mode = "wb" if outbound else "rb"
-        self.stream = NetstringIO.cast(open(self.path, mode))
+        self._mode = "wb" if outbound else "rb"
 
     def connect(self):
-        pass
+        self.stream = NetstringIO(open(self.path, self._mode))
 
     def close(self):
         self.stream.close()

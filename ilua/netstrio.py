@@ -7,19 +7,17 @@ __version__ = "0.1.0"
 class NetstringError(Exception):
     pass
 
-class NetstringIO(io.RawIOBase):
+class NetstringIO(object):
     MAX_NETSTR_LENGTH = 99999
-    _LENGTH_FORMAT = re.compile("(:[1-9][0-9]*")
+    _LENGTH_FORMAT = re.compile("[1-9][0-9]*")
 
-    @classmethod
-    def cast(cls, raw):
-        raw.__class__ = cls
-        return raw
+    def __init__(self, raw):
+        self.raw = raw
     
     def read_netstring(self):
         length_buffer = []
         while True:
-            char_read = self.read(1):
+            char_read = self.raw.read(1)
             if not char_read:
                 raise NetstringError("Reached EOF while parsing length")
             if char_read == b":":
@@ -32,7 +30,7 @@ class NetstringIO(io.RawIOBase):
         if len(length_buffer) == 0:
             raise NetstringError("Length is empty")
         
-        length = "".join(length_buffer)
+        length = b"".join(length_buffer).decode("ascii")
         if not self._LENGTH_FORMAT.match(length) and length != "0":
             raise NetstringError("Length is invalid")
         
@@ -40,19 +38,24 @@ class NetstringIO(io.RawIOBase):
         if length > self.MAX_NETSTR_LENGTH:
             raise NetstringError("Length exceeds MAX_NETSTR_LENGTH")
         
-        data = self.read(length)
+        data = self.raw.read(length)
         if not data:
             raise NetstringError("Reached EOF while reading data")
         
-        if self.read(1) != ",":
+        if self.raw.read(1) != b",":
             raise NetstringError("Could not read ending character")
         
         return data
 
-
     def write_netstring(self, data):
         # TODO: enfoce length?
-        return self.write(bytes(str(len(data))) + b":" + data + b","))
+        return self.raw.write(bytes(str(len(data)).encode("ascii")) + b":" + data + b",")
+    
+    def close(self):
+        self.raw.close()
+    
+    def flush(self):
+        self.raw.flush()
     
     @classmethod
     def _calc_length_limit(cls):
