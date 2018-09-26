@@ -95,13 +95,14 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
         
         if result["payload"]["success"]:
-            self.send_update("execute_result", {
-                'execution_count': self.execution_count,
-                'data': {
-                    'text/plain': "\t".join(result['payload']['returned'])
-                },
-                'metadata': {}
-            })
+            if len(result['payload']['returned']) > 0:
+                self.send_update("execute_result", {
+                    'execution_count': self.execution_count,
+                    'data': {
+                        'text/plain': "\t".join([str(i) for i in result['payload']['returned']])
+                    },
+                    'metadata': {}
+                })
         
             return {
                 'status': 'ok',

@@ -46,7 +46,7 @@ else
     handle_is_complete = function(code)
         local loaded, err = load(code, "=(ilua)", "t", dynamic_env)
         if not loaded then
-            return nil, err
+            return false
         end
         return true
     end
@@ -61,6 +61,16 @@ while true do
         netstring.write(ret_pipe, json.encode(message))
     elseif message.type == "execute" then
         local success, ret_val = handle_execute(message.payload)
+        if not success then
+            success = false
+        end
+        if success then
+            local tmp = {}
+            for i=1, ret_val.n do
+                tmp[i] = ret_val[i]
+            end
+            ret_val = tmp
+        end
         netstring.write(ret_pipe, json.encode({
             type = "execute",
             payload = {
