@@ -20,5 +20,5 @@ setup(
         ]
     },
 
-    install_requires=['twisted', 'txzmq', 'txkernel', 'jupyter_core']
+    install_requires=['twisted', 'txkernel', 'jupyter_core', 'jupyter_client']
 )
