@@ -15,8 +15,10 @@ from txkernel.kernelbase import KernelBase
 from txkernel.kernelapp import KernelApp
 
 if os.name == "posix":
+    # pylint: disable=E0401
     from ._unixfifo import Fifo as Pipe
 elif os.name == "nt":
+    # pylint: disable=E0401
     from ._win32namedpipe import NamedPipe as Pipe
 else:
     raise RuntimeError("os.name {} is not supported".format(os.name))
@@ -69,8 +71,9 @@ class ILuaKernel(KernelBase):
             'ILUA_RET_PATH': self.ret_pipe.path,
             'ILUA_LIB_PATH': LUALIBS_PATH
         }
+        # pylint: disable=no-member
         reactor.spawnProcess(proto, 'lua', ['lua', INTERPRETER_SCRIPT],
-                             lua_env)               
+                             lua_env)
         
         self.log.debug("Connecting to lua")
         self.cmd_pipe.connect()
@@ -144,6 +147,10 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
         
         return {'status': result['payload']}
+    
+    def on_stop(self):
+        self.cmd_pipe.close()
+        self.ret_pipe.close()
         
 if __name__ == '__main__':
     KernelApp(ILuaKernel).run()
