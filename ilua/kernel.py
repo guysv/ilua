@@ -2,7 +2,7 @@
 # Copyright (C) 2018  guysv
 
 # This file is part of ILua which is released under GPLv2.
-# See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
+# See file LICENSE or go to https://www.gnu.org/licenses/gpl-3.0.txt
 # for full license details.
 
 import json
@@ -12,7 +12,7 @@ import threading
 
 from twisted.internet import reactor, protocol, defer, threads
 from txkernel.kernelbase import KernelBase
-from txkernel.kernelapp import PassiveKernelApp
+from txkernel.kernelapp import KernelApp
 
 if os.name == "posix":
     from ._unixfifo import Fifo as Pipe
@@ -64,11 +64,15 @@ class ILuaKernel(KernelBase):
         def message_sink(stream, data):
             return self.send_update("stream", {"name": stream, "text": data})
         proto = OutputCapture(message_sink)
-        reactor.spawnProcess(proto, 'lua', ['lua', INTERPRETER_SCRIPT,
-                                            self.cmd_pipe.path,
-                                            self.ret_pipe.path,
-                                            LUALIBS_PATH])
+        lua_env = {
+            'ILUA_CMD_PATH': self.cmd_pipe.path,
+            'ILUA_RET_PATH': self.ret_pipe.path,
+            'ILUA_LIB_PATH': LUALIBS_PATH
+        }
+        reactor.spawnProcess(proto, 'lua', ['lua', INTERPRETER_SCRIPT],
+                             lua_env)               
         
+        self.log.debug("Connecting to lua")
         self.cmd_pipe.connect()
         self.ret_pipe.connect()
 
@@ -139,10 +143,7 @@ class ILuaKernel(KernelBase):
                                              {"type": "is_complete",
                                              "payload": code})
         
-        if result['payload']['complete']:
-            return {'status': 'complete'}
-        else:
-            return {'status': 'incomplete'}
+        return {'status': result['payload']}
         
 if __name__ == '__main__':
-    PassiveKernelApp(ILuaKernel).run()
+    KernelApp(ILuaKernel).run()

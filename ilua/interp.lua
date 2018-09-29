@@ -5,57 +5,71 @@
 -- See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 -- for full license details.
 
-local dynamic_env = {}
-for key,val in pairs(_ENV) do
-    dynamic_env[key] = val
-end
-
-local cmd_pipe_path, ret_pipe_path, lib_path = table.unpack(arg, 1, 3)
+local cmd_pipe_path = assert(os.getenv("ILUA_CMD_PATH"))
+local ret_pipe_path = assert(os.getenv("ILUA_RET_PATH"))
+local lib_path = assert(os.getenv("ILUA_LIB_PATH"))
 
 -- Windows supports / as dirsep
-local netstring = dofile(lib_path .. "/netstring.lua/netstring.lua")
-local json = dofile(lib_path .. "/json.lua/json.lua")
+local netstring = assert(dofile(lib_path .. "/netstring.lua/netstring.lua"))
+local json = assert(dofile(lib_path .. "/json.lua/json.lua"))
 
--- competabillity setup
-if not table.pack then
-    function table.pack (...)       -- luacheck: ignore
-        return {n=select('#',...); ...}
-    end
+-- Compatibility setup
+table.pack = table.pack or function (...)
+    return {n=select('#',...); ...}
 end
+table.unpack = table.unpack or unpack
 
-if not table.unpack then
-    table.unpack = unpack
-end
+local load_compat
 
-local handle_execute = nil
-local handle_is_complete = nil
-if getfenv then
-    -- lua 5.1 impl
-    error("Not implemented yet")
-    handle_execute = function(code)
-
-    end
-else
-    -- lua 5.2 impl
-    handle_execute = function(code)
-        local loaded, err = load(code, "=(ilua)", "t", dynamic_env)
+if setfenv then
+    function load_compat(code, env)
+        loaded, err = loadstring(code, "=(ilua)")
         if not loaded then
             return nil, err
         end
-        outcome = table.pack(xpcall(loaded, debug.traceback))
-        success = outcome[1]
-        if not success then
-            return nil, outcome[2]
-        end
-        return success, table.pack(select(2, table.unpack(outcome)))
+        setfenv(loaded, env)
+        return loaded, err
     end
+else
+    function load_compat(code, env)
+        return load(code, "=(ilua)", "t", env)
+    end
+end
 
-    handle_is_complete = function(code)
-        local loaded, err = load(code, "=(ilua)", "t", dynamic_env)
-        if not loaded then
-            return false
-        end
-        return true
+-- shell environment setup
+local dynamic_env = {}
+local global_env
+if getfenv then
+    global_env = getfenv(0)    
+else
+    global_env = _ENV
+end
+for key, val in pairs(global_env) do
+    dynamic_env[key] = val
+end
+
+-- shell logic
+local function handle_execute(code)
+    local loaded, err = load_compat(code, dynamic_env)
+    if not loaded then
+        return nil, err
+    end
+    outcome = table.pack(xpcall(loaded, debug.traceback))
+    success = outcome[1]
+    if not success then
+        return nil, outcome[2]
+    end
+    return success, table.pack(select(2, table.unpack(outcome)))
+end
+
+local function handle_is_complete(code)
+    local loaded, err = load_compat(code, dynamic_env)
+    if loaded then
+        return 'complete'
+    elseif string.sub(err, -#("<eof>")) == "<eof>" then
+        return 'incomplete'
+    else
+        return 'invalid'
     end
 end
 
@@ -86,12 +100,10 @@ while true do
             }
         }))
     elseif message.type == "is_complete" then
-        local success, ret_val = handle_is_complete(message.payload)
+        local status = handle_is_complete(message.payload)
         netstring.write(ret_pipe, json.encode({
             type = "is_complete",
-            payload = {
-                complete = success
-            }
+            payload = status
         }))
     else
         error("Unknown message type")
