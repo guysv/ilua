@@ -99,9 +99,9 @@ while true do
         if success then
             local tmp = {}
             for i=1, ret_val.n do
-                tmp[i] = ret_val[i]
+                tmp[i] = tostring(ret_val[i])
             end
-            ret_val = tmp
+            ret_val = table.concat(tmp, "\t")
         end
         netstring.write(ret_pipe, json.encode({
             type = "execute",

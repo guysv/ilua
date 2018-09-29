@@ -114,7 +114,7 @@ class ILuaKernel(KernelBase):
                 self.send_update("execute_result", {
                     'execution_count': self.execution_count,
                     'data': {
-                        'text/plain': "\t".join([str(i) for i in result['payload']['returned']])
+                        'text/plain': result['payload']['returned']
                     },
                     'metadata': {}
                 })
