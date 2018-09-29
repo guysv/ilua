@@ -49,8 +49,19 @@ for key, val in pairs(global_env) do
 end
 
 -- shell logic
+local function load_chunk(code, env)
+    local loaded, err = load_compat("return " .. code, env)
+    if not loaded then
+        loaded, err = load_compat(code, env)
+        if not loaded then
+            return nil, err
+        end
+    end
+    return loaded, err
+end
+
 local function handle_execute(code)
-    local loaded, err = load_compat(code, dynamic_env)
+    local loaded, err = load_chunk(code, dynamic_env)
     if not loaded then
         return nil, err
     end
@@ -63,7 +74,7 @@ local function handle_execute(code)
 end
 
 local function handle_is_complete(code)
-    local loaded, err = load_compat(code, dynamic_env)
+    local loaded, err = load_chunk(code, dynamic_env)
     if loaded then
         return 'complete'
     elseif string.sub(err, -#("<eof>")) == "<eof>" then
