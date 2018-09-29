@@ -72,8 +72,9 @@ class ILuaKernel(KernelBase):
             'ILUA_LIB_PATH': LUALIBS_PATH
         }
         # pylint: disable=no-member
-        reactor.spawnProcess(proto, 'lua', ['lua', INTERPRETER_SCRIPT],
-                             lua_env)
+        self.lua_process = reactor.spawnProcess(proto, 'lua',
+                                                ['lua', INTERPRETER_SCRIPT],
+                                                lua_env)
         
         self.log.debug("Connecting to lua")
         self.cmd_pipe.connect()
@@ -151,6 +152,7 @@ class ILuaKernel(KernelBase):
     def on_stop(self):
         self.cmd_pipe.close()
         self.ret_pipe.close()
+        self.lua_process.signalProcess("KILL")
         
 if __name__ == '__main__':
     KernelApp(ILuaKernel).run()
