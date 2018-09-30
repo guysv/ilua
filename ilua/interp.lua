@@ -71,7 +71,17 @@ local function handle_execute(code)
     if not success then
         return nil, outcome[2]
     end
-    return success, table.pack(select(2, table.unpack(outcome)))
+    local returned = table.pack(select(2, table.unpack(outcome, 1, outcome.n)))
+    if returned.n > 0 then
+        dynamic_env['_'] = function()
+            return table.unpack(returned, 1, returned.n)
+        end
+    else
+        dynamic_env['_'] = function()
+            return nil
+        end
+    end
+    return success, returned
 end
 
 local function handle_is_complete(code)
