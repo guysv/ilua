@@ -110,7 +110,7 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
         
         if result["payload"]["success"]:
-            if len(result['payload']['returned']) > 0:
+            if result['payload']['returned'] == "" and not silent:
                 self.send_update("execute_result", {
                     'execution_count': self.execution_count,
                     'data': {
@@ -126,19 +126,23 @@ class ILuaKernel(KernelBase):
                 'user_expressions': {},
             }
         else:
-            self.send_update("error", {
-                'execution_count': self.execution_count,
-                'traceback': result['payload']['returned'],
-                'ename': 'n/a',
-                'evalue': 'n/a'
-            })
+            full_traceback = result['payload']['returned'].split("\n")
+            evalue = full_traceback[0]
+            traceback = full_traceback[2:]
+            if not silent:
+                self.send_update("error", {
+                    'execution_count': self.execution_count,
+                    'traceback': traceback,
+                    'ename': 'n/a',
+                    'evalue': evalue
+                })
 
             return {
                 'status': 'error',
                 'execution_count': self.execution_count,
-                'traceback': result['payload']['returned'],
+                'traceback': traceback,
                 'ename': 'n/a',
-                'evalue': 'n/a'
+                'evalue': evalue
             }
     
     @defer.inlineCallbacks
