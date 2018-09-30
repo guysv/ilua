@@ -58,12 +58,9 @@ class NetstringIO(object):
         # TODO: enfoce length?
         return self.raw.write(bytes(str(len(data)).encode("ascii")) + b":" + data + b",")
     
-    def close(self):
-        self.raw.close()
-    
-    def flush(self):
-        self.raw.flush()
-    
+    def __getattr__(self, attr):
+        return getattr(self.raw, attr)
+
     @classmethod
     def _calc_length_limit(cls):
         return math.ceil(math.log10(cls.MAX_NETSTR_LENGTH))

@@ -14,14 +14,7 @@ from twisted.internet import reactor, protocol, defer, threads
 from txkernel.kernelbase import KernelBase
 from txkernel.kernelapp import KernelApp
 
-if os.name == "posix":
-    # pylint: disable=E0401
-    from ._unixfifo import Fifo as Pipe
-elif os.name == "nt":
-    # pylint: disable=E0401
-    from ._win32namedpipe import NamedPipe as Pipe
-else:
-    raise RuntimeError("os.name {} is not supported".format(os.name))
+from .pipe import Pipe, NetstringPipe
 
 INTERPRETER_SCRIPT = os.path.join(os.path.dirname(__file__), "interp.lua")
 LUALIBS_PATH = os.path.join(os.path.dirname(__file__), "lualibs")
@@ -56,8 +49,8 @@ class ILuaKernel(KernelBase):
 
         self.log.debug("Opening pipes")
         # Pipe setup
-        self.cmd_pipe = Pipe.cmd_pipe()
-        self.ret_pipe = Pipe.ret_pipe()
+        self.cmd_pipe = NetstringPipe.cmd_pipe()
+        self.ret_pipe = NetstringPipe.ret_pipe()
 
         self.pipes_lock = threading.Lock()
 

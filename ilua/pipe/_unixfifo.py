@@ -10,7 +10,6 @@ import os.path
 
 from jupyter_core.paths import jupyter_runtime_dir
 from .pipebase import PipeBase
-from .netstrio import NetstringIO
 
 class Fifo(PipeBase):
     def __init__(self, name_suffix, outbound):
@@ -23,7 +22,7 @@ class Fifo(PipeBase):
         self._mode = "wb" if outbound else "rb"
 
     def connect(self):
-        self.stream = NetstringIO(open(self.path, self._mode))
+        self.stream = open(self.path, self._mode)
 
     def close(self):
         self.stream.close()
