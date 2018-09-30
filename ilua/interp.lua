@@ -94,11 +94,10 @@ while true do
         netstring.write(ret_pipe, json.encode(message))
     elseif message.type == "execute" then
         local success, ret_val = handle_execute(message.payload)
-        success = success or false
+        if not success then
+            success = false
+        end
         if success then
-            dynamic_env['_'] = function()
-                return table.unpack(ret_val)
-            end
             local tmp = {}
             for i=1, ret_val.n do
                 tmp[i] = inspect(ret_val[i], {newline="", indent=""})

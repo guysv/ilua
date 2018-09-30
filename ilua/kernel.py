@@ -110,7 +110,7 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
         
         if result["payload"]["success"]:
-            if result['payload']['returned'] != "" and not silent:
+            if result['payload']['returned'] == "" and not silent:
                 self.send_update("execute_result", {
                     'execution_count': self.execution_count,
                     'data': {
