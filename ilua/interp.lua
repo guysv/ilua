@@ -12,6 +12,7 @@ local lib_path = assert(os.getenv("ILUA_LIB_PATH"))
 -- Windows supports / as dirsep
 local netstring = assert(dofile(lib_path .. "/netstring.lua/netstring.lua"))
 local json = assert(dofile(lib_path .. "/json.lua/json.lua"))
+local inspect = assert(dofile(lib_path .. "/inspect.lua/inspect.lua"))
 
 -- Compatibility setup
 table.pack = table.pack or function (...)
@@ -99,7 +100,7 @@ while true do
         if success then
             local tmp = {}
             for i=1, ret_val.n do
-                tmp[i] = tostring(ret_val[i])
+                tmp[i] = inspect(ret_val[i], {newline="", indent=""})
             end
             ret_val = table.concat(tmp, "\t")
         end

@@ -17,6 +17,7 @@ setup(
             'interp.lua',
             'lualibs/json.lua/json.lua',
             'lualibs/netstring.lua/netstring.lua',
+            'lualibs/netstring.lua/inspect.lua',
         ]
     },
 
