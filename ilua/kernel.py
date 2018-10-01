@@ -10,6 +10,10 @@ import os
 import functools
 import threading
 
+if os.name == 'nt':
+    import win32api
+    import win32con
+
 from twisted.internet import reactor, protocol, defer, threads
 from txkernel.kernelbase import KernelBase
 from txkernel.kernelapp import KernelApp
@@ -22,13 +26,13 @@ LUALIBS_PATH = os.path.join(os.path.dirname(__file__), "lualibs")
 class OutputCapture(protocol.ProcessProtocol):
     def __init__(self, message_sink):
         self.message_sink = message_sink
-    
+
     def connectionMade(self):
         self.transport.closeStdin()
-    
+
     def outReceived(self, data):
         self.message_sink("stdout", data.decode("utf-8"))
-    
+
     def errReceived(self, data):
         self.message_sink("stdout", data.decode("utf-8"))
 
@@ -65,10 +69,15 @@ class ILuaKernel(KernelBase):
             'ILUA_LIB_PATH': LUALIBS_PATH
         }
         # pylint: disable=no-member
-        self.lua_process = reactor.spawnProcess(proto, 'lua',
-                                                ['lua', INTERPRETER_SCRIPT],
-                                                lua_env)
-        
+        if os.name == "nt":
+            self.lua_process = reactor.spawnProcess(proto, None,
+                                                    ['lua', INTERPRETER_SCRIPT],
+                                                    lua_env)
+        else:
+            self.lua_process = reactor.spawnProcess(proto, 'lua',
+                                                    ['lua', INTERPRETER_SCRIPT],
+                                                    lua_env)
+
         self.log.debug("Connecting to lua")
         self.cmd_pipe.connect()
         self.ret_pipe.connect()
@@ -78,7 +87,7 @@ class ILuaKernel(KernelBase):
                                                          "payload": test_payload}).encode("utf-8"))
         self.cmd_pipe.stream.flush()
 
-        self.log.debug("Wrote test message to cmd_pipe")    
+        self.log.debug("Wrote test message to cmd_pipe")
         if json.loads(self.ret_pipe.stream.read_netstring())["payload"] != test_payload:
             raise Exception("placeholder")
         self.log.debug("Read test message from ret_pipe")
@@ -92,7 +101,7 @@ class ILuaKernel(KernelBase):
         self.pipes_lock.release()
 
         return json.loads(self.ret_pipe.stream.read_netstring())
-    
+
     @defer.inlineCallbacks
     def do_execute(self, code, silent, store_history=True, user_expressions=None,
                    allow_stdin=False):
@@ -101,7 +110,7 @@ class ILuaKernel(KernelBase):
         result = yield threads.deferToThread(self.send_message,
                                              {"type": "execute",
                                              "payload": code})
-        
+
         if result["payload"]["success"]:
             if result['payload']['returned'] != "" and not silent:
                 self.send_update("execute_result", {
@@ -111,7 +120,7 @@ class ILuaKernel(KernelBase):
                     },
                     'metadata': {}
                 })
-        
+
             defer.returnValue({
                 'status': 'ok',
                 'execution_count': self.execution_count,
@@ -137,22 +146,29 @@ class ILuaKernel(KernelBase):
                 'ename': 'n/a',
                 'evalue': evalue
             })
-    
+
     @defer.inlineCallbacks
     def do_is_complete(self, code):
         result = yield threads.deferToThread(self.send_message,
                                              {"type": "is_complete",
                                              "payload": code})
-        
+
         defer.returnValue({'status': result['payload']})
-    
+
     def do_interrupt(self):
-        self.lua_process.signalProcess("INT")
-    
+        if os.name == 'nt':
+            self.log.warn("Windows currently does not support keyboard"\
+                          " interrupts")
+        else:
+            self.lua_process.signalProcess("INT")
+
     def on_stop(self):
         self.cmd_pipe.close()
         self.ret_pipe.close()
         self.lua_process.signalProcess("KILL")
-        
+
 if __name__ == '__main__':
+    if os.name == "nt":
+        import signal
+        signal.signal(signal.SIGINT, lambda *args: None)
     KernelApp(ILuaKernel).run()

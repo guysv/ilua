@@ -37,5 +37,5 @@ class NamedPipe(PipeBase):
     def connect(self):
         win32pipe.ConnectNamedPipe(self._handle, None)
 
-    def close():
+    def close(self):
         self._handle.close()
