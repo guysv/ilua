@@ -121,7 +121,7 @@ class ILuaKernel(KernelBase):
         else:
             full_traceback = result['payload']['returned'].split("\n")
             evalue = full_traceback[0]
-            traceback = full_traceback[2:]
+            traceback = full_traceback
             if not silent:
                 self.send_update("error", {
                     'execution_count': self.execution_count,
@@ -145,6 +145,9 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
         
         return {'status': result['payload']}
+    
+    def do_interrupt(self):
+        self.lua_process.signalProcess("INT")
     
     def on_stop(self):
         self.cmd_pipe.close()
