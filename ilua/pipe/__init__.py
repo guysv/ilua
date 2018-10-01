@@ -11,5 +11,5 @@ else:
 
 class NetstringPipe(Pipe):
     def connect(self):
-        super().connect()
+        super(NetstringPipe, self).connect()
         self.stream = NetstringIO(self.stream)

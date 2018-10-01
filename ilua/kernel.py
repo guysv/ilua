@@ -45,7 +45,7 @@ class ILuaKernel(KernelBase):
     banner = "placehoderr.."
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(ILuaKernel, self).__init__(*args, **kwargs)
 
         self.log.debug("Opening pipes")
         # Pipe setup
@@ -112,12 +112,12 @@ class ILuaKernel(KernelBase):
                     'metadata': {}
                 })
         
-            return {
+            defer.returnValue({
                 'status': 'ok',
                 'execution_count': self.execution_count,
                 'payload': [],
                 'user_expressions': {},
-            }
+            })
         else:
             full_traceback = result['payload']['returned'].split("\n")
             evalue = full_traceback[0]
@@ -130,13 +130,13 @@ class ILuaKernel(KernelBase):
                     'evalue': evalue
                 })
 
-            return {
+            defer.returnValue({
                 'status': 'error',
                 'execution_count': self.execution_count,
                 'traceback': traceback,
                 'ename': 'n/a',
                 'evalue': evalue
-            }
+            })
     
     @defer.inlineCallbacks
     def do_is_complete(self, code):
@@ -144,7 +144,7 @@ class ILuaKernel(KernelBase):
                                              {"type": "is_complete",
                                              "payload": code})
         
-        return {'status': result['payload']}
+        defer.returnValue({'status': result['payload']})
     
     def do_interrupt(self):
         self.lua_process.signalProcess("INT")
