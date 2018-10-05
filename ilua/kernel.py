@@ -63,11 +63,11 @@ class ILuaKernel(KernelBase):
         def message_sink(stream, data):
             return self.send_update("stream", {"name": stream, "text": data})
         proto = OutputCapture(message_sink)
-        lua_env = {
+        lua_env = os.environ.update({
             'ILUA_CMD_PATH': self.cmd_pipe.path,
             'ILUA_RET_PATH': self.ret_pipe.path,
             'ILUA_LIB_PATH': LUALIBS_PATH
-        }
+        })
         # pylint: disable=no-member
         if os.name == "nt":
             self.lua_process = reactor.spawnProcess(proto, None,
