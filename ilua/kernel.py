@@ -156,11 +156,7 @@ class ILuaKernel(KernelBase):
         defer.returnValue({'status': result['payload']})
 
     def do_interrupt(self):
-        if os.name == 'nt':
-            self.log.warn("Windows currently does not support keyboard"\
-                          " interrupts")
-        else:
-            self.lua_process.signalProcess("INT")
+        self.log.warn("ILua does not support keyboard interrupts")
 
     def on_stop(self):
         self.cmd_pipe.close()
