@@ -100,7 +100,8 @@ class ILuaKernel(KernelBase):
         self.cmd_pipe.stream.flush()
         self.pipes_lock.release()
 
-        return json.loads(self.ret_pipe.stream.read_netstring())
+        resp = self.ret_pipe.stream.read_netstring().decode("utf8", "ignore")
+        return json.loads(resp)
 
     @defer.inlineCallbacks
     def do_execute(self, code, silent, store_history=True, user_expressions=None,
