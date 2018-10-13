@@ -95,13 +95,12 @@ class ILuaKernel(KernelBase):
     def send_message(self, message):
         message_json = json.dumps(message).encode("utf-8")
 
-        self.pipes_lock.acquire()
+        with self.pipes_lock:
         self.cmd_pipe.stream.write_netstring(message_json)
         self.cmd_pipe.stream.flush()
-        self.pipes_lock.release()
+            resp = self.ret_pipe.stream.read_netstring()
 
-        resp = self.ret_pipe.stream.read_netstring().decode("utf8", "ignore")
-        return json.loads(resp)
+        return json.loads(resp.decode("utf8", "ignore"))
 
     @defer.inlineCallbacks
     def do_execute(self, code, silent, store_history=True, user_expressions=None,
