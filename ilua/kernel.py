@@ -7,8 +7,12 @@
 
 import json
 import os
+import re
 import functools
 import threading
+
+from pygments.lexers.agile import LuaLexer
+from pygments import token
 
 if os.name == 'nt':
     import win32api
@@ -50,6 +54,7 @@ class ILuaKernel(KernelBase):
 
     def __init__(self, *args, **kwargs):
         super(ILuaKernel, self).__init__(*args, **kwargs)
+        self.lexer = LuaLexer()
 
         self.log.debug("Opening pipes")
         # Pipe setup
@@ -96,8 +101,8 @@ class ILuaKernel(KernelBase):
         message_json = json.dumps(message).encode("utf-8")
 
         with self.pipes_lock:
-        self.cmd_pipe.stream.write_netstring(message_json)
-        self.cmd_pipe.stream.flush()
+            self.cmd_pipe.stream.write_netstring(message_json)
+            self.cmd_pipe.stream.flush()
             resp = self.ret_pipe.stream.read_netstring()
 
         return json.loads(resp.decode("utf8", "ignore"))
@@ -154,6 +159,62 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
 
         defer.returnValue({'status': result['payload']})
+    
+    _NO_COMPLETIONS = {
+        'matches': [],
+        'cursor_start':0,
+        'cursor_end':0,
+        'metadata':{},
+        'status': 'ok'
+    }
+    
+    @defer.inlineCallbacks
+    def do_complete(self, code, cursor_pos):
+        tokens = list(self.lexer.get_tokens_unprocessed(code[:cursor_pos]))
+        if len(tokens) == 0:
+            defer.returnValue(self._NO_COMPLETIONS)
+        elif tokens[-1][1] == token.Name:
+            result = yield threads.deferToThread(self.send_message, {"type": "complete","payload": {'subject': ""}})
+            matches = filter(lambda x: x.startswith(tokens[-1][2]),
+                             result['payload'])
+            cursor_start = cursor_pos - len(tokens[-1][2]) - 1
+            cursor_end = cursor_pos
+        elif len(tokens) < 2 or tokens[-2][1] != token.Name:
+            defer.returnValue(self._NO_COMPLETIONS)
+        elif tokens[-1][2] == '.':
+            result = yield threads.deferToThread(self.send_message,
+                                                {
+                                                    "type": "complete",
+                                                    "payload": {
+                                                        'subject': tokens[-2][2]
+                                                    }
+                                                })
+            matches = [tokens[-2][2] + '.' + i for i in result['payload']]
+            cursor_start = cursor_pos - len(tokens[-1][2]) - len('.') - 1
+            cursor_end = cursor_pos
+        elif tokens[-1][2] == ':':
+            # TODO: filter only methods
+            result = yield threads.deferToThread(self.send_message,
+                                                {
+                                                    "type": "complete",
+                                                    "payload": {
+                                                        'subject': tokens[-2][2],
+                                                        'methods': True
+                                                    }
+                                                })
+            matches = [tokens[-2][2] + ':' + i for i in result['payload']]
+            cursor_start = cursor_pos - len(tokens[-1][2]) - len(':') - 1
+            cursor_end = cursor_pos
+        else:
+            defer.returnValue(self._NO_COMPLETIONS)
+
+        defer.returnValue({
+                'matches': sorted(list(set(matches))),
+                'cursor_start':cursor_start,
+                'cursor_end':cursor_end,
+                'metadata':{},
+                'status': 'ok'
+        })
 
     def do_interrupt(self):
         self.log.warn("ILua does not support keyboard interrupts")

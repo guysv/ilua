@@ -95,6 +95,29 @@ local function handle_is_complete(code)
     end
 end
 
+local function handle_complete(subject, methods)
+    local matches = {}
+    local subject_obj = nil
+    if subject == "" then
+        subject_obj = dynamic_env
+    else
+        subject_obj = dynamic_env[subject]
+    end
+    if subject_obj == nil then
+        return matches
+    end
+    if type(subject_obj) == 'table' then
+        for key, value in pairs(subject_obj) do
+            if type(key) == 'string' and
+                    key:match("^[_a-zA-Z][_a-zA-Z0-9]*$") and
+                    (not methods or type(value) == 'function') then
+                matches[#matches+1] = key
+            end
+        end
+    end
+    return matches
+end
+
 local cmd_pipe = assert(io.open(cmd_pipe_path, "rb"))
 local ret_pipe = assert(io.open(ret_pipe_path, "wb"))
 
@@ -126,6 +149,13 @@ while true do
         netstring.write(ret_pipe, json.encode({
             type = "is_complete",
             payload = status
+        }))
+    elseif message.type == 'complete' then
+        local matches = handle_complete(message.payload.subject,
+                                        message.payload.methods)
+        netstring.write(ret_pipe, json.encode({
+            type = "complete",
+            payload = matches
         }))
     else
         error("Unknown message type")
