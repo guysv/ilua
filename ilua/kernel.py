@@ -177,7 +177,7 @@ class ILuaKernel(KernelBase):
             result = yield threads.deferToThread(self.send_message, {"type": "complete","payload": {'subject': ""}})
             matches = filter(lambda x: x.startswith(tokens[-1][2]),
                              result['payload'])
-            cursor_start = cursor_pos - len(tokens[-1][2]) - 1
+            cursor_start = cursor_pos - len(tokens[-1][2])
             cursor_end = cursor_pos
         elif len(tokens) < 2 or tokens[-2][1] != token.Name:
             defer.returnValue(self._NO_COMPLETIONS)
