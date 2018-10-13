@@ -193,7 +193,6 @@ class ILuaKernel(KernelBase):
             cursor_start = cursor_pos - len(tokens[-1][2]) - len('.') - 1
             cursor_end = cursor_pos
         elif tokens[-1][2] == ':':
-            # TODO: filter only methods
             result = yield threads.deferToThread(self.send_message,
                                                 {
                                                     "type": "complete",

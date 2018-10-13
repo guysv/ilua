@@ -95,7 +95,22 @@ local function handle_is_complete(code)
     end
 end
 
-local function handle_complete(subject, methods)
+local function get_metatable_matches(obj, matches, methods_only)
+    local mt = getmetatable(obj)
+    if not mt or not mt.__index or type(mt.__index) == "function" then
+        return
+    end
+    for key, value in pairs(mt.__index) do
+        if type(key) == 'string' and
+                key:match("^[_a-zA-Z][_a-zA-Z0-9]*$") and
+                (not methods_only or type(value) == 'function') then
+            matches[#matches+1] = key
+        end
+    end
+    get_metatable_matches(mt, matches, methods_only)
+end
+
+local function handle_complete(subject, methods_only)
     local matches = {}
     local subject_obj = nil
     if subject == "" then
@@ -110,11 +125,12 @@ local function handle_complete(subject, methods)
         for key, value in pairs(subject_obj) do
             if type(key) == 'string' and
                     key:match("^[_a-zA-Z][_a-zA-Z0-9]*$") and
-                    (not methods or type(value) == 'function') then
+                    (not methods_only or type(value) == 'function') then
                 matches[#matches+1] = key
             end
         end
     end
+    get_metatable_matches(subject_obj, matches, methods_only)
     return matches
 end
 
