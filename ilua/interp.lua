@@ -73,13 +73,9 @@ local function handle_execute(code)
     end
     local returned = table.pack(select(2, table.unpack(outcome, 1, outcome.n)))
     if returned.n > 0 then
-        dynamic_env['_'] = function()
-            return table.unpack(returned, 1, returned.n)
-        end
+        dynamic_env['_'] = returned[1]
     else
-        dynamic_env['_'] = function()
-            return nil
-        end
+        dynamic_env['_'] = nil
     end
     return success, returned
 end
