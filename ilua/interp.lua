@@ -91,33 +91,28 @@ local function handle_is_complete(code)
     end
 end
 
-local function get_matches(obj, matches, methods_only)
+local function get_matches(obj, matches, only_methods)
     if type(obj) == 'table' then
         for key, value in pairs(obj) do
             if type(key) == 'string' and
                     key:match("^[_a-zA-Z][_a-zA-Z0-9]*$") and
-                    (not methods_only or type(value) == 'function') then
+                    (not only_methods or type(value) == 'function') then
                 matches[#matches+1] = key
             end
         end
     end
     local mt = getmetatable(obj)
     if mt and mt.__index then
-        get_matches(mt.__index, matches, methods_only)
+        get_matches(mt.__index, matches, only_methods)
     end
 end
 
-local function handle_complete(subject, methods_only)
+local function handle_complete(breadcrumbs, only_methods)
+    local subject_obj = dynamic_env
+    for _, key in ipairs(breadcrumbs) do
+        subject_obj = subject_obj[key]
+    end
     local matches = {}
-    local subject_obj = nil
-    if subject == "" then
-        subject_obj = dynamic_env
-    else
-        subject_obj = dynamic_env[subject]
-    end
-    if subject_obj == nil then
-        return matches
-    end
     get_matches(subject_obj, matches, methods_only)
     return matches
 end
@@ -155,8 +150,8 @@ while true do
             payload = status
         }))
     elseif message.type == 'complete' then
-        local matches = handle_complete(message.payload.subject,
-                                        message.payload.methods)
+        local matches = handle_complete(message.payload.breadcrumbs,
+                                        message.payload.only_methods)
         netstring.write(ret_pipe, json.encode({
             type = "complete",
             payload = matches

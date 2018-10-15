@@ -9,9 +9,10 @@ import json
 import os
 import re
 import functools
+import itertools
 import threading
 
-from pygments.lexers.agile import LuaLexer
+from pygments.lexers import _lua_builtins, scripting
 from pygments import token
 
 if os.name == 'nt':
@@ -54,7 +55,8 @@ class ILuaKernel(KernelBase):
 
     def __init__(self, *args, **kwargs):
         super(ILuaKernel, self).__init__(*args, **kwargs)
-        self.lexer = LuaLexer()
+        disabled_modules = list(_lua_builtins.MODULES)
+        self.lexer = scripting.LuaLexer(disabled_modules=disabled_modules)
 
         self.log.debug("Opening pipes")
         # Pipe setup
@@ -159,56 +161,56 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
 
         defer.returnValue({'status': result['payload']})
-    
-    _NO_COMPLETIONS = {
-        'matches': [],
-        'cursor_start':0,
-        'cursor_end':0,
-        'metadata':{},
-        'status': 'ok'
-    }
-    
+
     @defer.inlineCallbacks
     def do_complete(self, code, cursor_pos):
         tokens = list(self.lexer.get_tokens_unprocessed(code[:cursor_pos]))
-        if len(tokens) == 0:
-            defer.returnValue(self._NO_COMPLETIONS)
+
+        if not tokens:
+            initial = ""
         elif tokens[-1][1] == token.Name:
-            result = yield threads.deferToThread(self.send_message, {"type": "complete","payload": {'subject': ""}})
-            matches = filter(lambda x: x.startswith(tokens[-1][2]),
-                             result['payload'])
-            cursor_start = cursor_pos - len(tokens[-1][2])
-            cursor_end = cursor_pos
-        elif len(tokens) < 2 or tokens[-2][1] != token.Name:
-            defer.returnValue(self._NO_COMPLETIONS)
-        elif tokens[-1][2] == '.':
-            result = yield threads.deferToThread(self.send_message,
-                                                {
-                                                    "type": "complete",
-                                                    "payload": {
-                                                        'subject': tokens[-2][2]
-                                                    }
-                                                })
-            matches = [tokens[-2][2] + '.' + i for i in result['payload']]
-            cursor_start = cursor_pos - len(tokens[-1][2]) - len('.') - 1
-            cursor_end = cursor_pos
-        elif tokens[-1][2] == ':':
-            result = yield threads.deferToThread(self.send_message,
-                                                {
-                                                    "type": "complete",
-                                                    "payload": {
-                                                        'subject': tokens[-2][2],
-                                                        'methods': True
-                                                    }
-                                                })
-            matches = [tokens[-2][2] + ':' + i for i in result['payload']]
-            cursor_start = cursor_pos - len(tokens[-1][2]) - len(':') - 1
-            cursor_end = cursor_pos
+            # Last token is part of a name, keep it to narrow down options
+            initial = tokens.pop()[2]
         else:
-            defer.returnValue(self._NO_COMPLETIONS)
+            initial = ""
+        last_obj_tokens = itertools.takewhile(lambda x: x[1] == token.Name or
+                                                        x[2] in '.:',
+                                              tokens[::-1])
+        last_obj_tokens = list(last_obj_tokens)
+        breadcrumbs = []
+        now_name = True
+        for t in last_obj_tokens[1:]:
+            if now_name and t[1] == token.Name:
+                breadcrumbs.insert(0, t[2])
+            elif now_name and t[1] != token.Name:
+                break
+            elif not now_name and not t[2] == '.':
+                break
+            now_name = not now_name
+        
+        only_methods = False
+        if not last_obj_tokens:
+            pass
+        elif last_obj_tokens[0][2] == ':' and breadcrumbs != []:
+            only_methods = True
+        elif last_obj_tokens[0][2] != '.':
+            breadcrumbs = []
+        
+        result = yield threads.deferToThread(self.send_message,
+                                             {"type": "complete", "payload": {
+                                              'breadcrumbs': breadcrumbs,
+                                              'only_methods': only_methods}})
+        
+        matches = filter(lambda x: x.startswith(initial), result['payload'])
+        matches_prefix = "".join([t[2] for t in last_obj_tokens[::-1]])
+        matches_full = [matches_prefix + m for m in matches]
+        
+        cursor_start = cursor_pos - sum([len(s) for s in breadcrumbs]) \
+                            - len(breadcrumbs) - len(initial)
+        cursor_end = cursor_pos
 
         defer.returnValue({
-                'matches': sorted(list(set(matches))),
+                'matches': sorted(list(set(matches_full))),
                 'cursor_start':cursor_start,
                 'cursor_end':cursor_end,
                 'metadata':{},
