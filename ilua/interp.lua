@@ -67,6 +67,10 @@ local function handle_execute(code)
         return nil, err
     end
     outcome = table.pack(xpcall(loaded, debug.traceback))
+
+    dynamic_env.io.stdout:flush()
+    dynamic_env.io.stderr:flush()
+
     success = outcome[1]
     if not success then
         return nil, outcome[2]
