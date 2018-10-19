@@ -213,11 +213,11 @@ class ILuaKernel(KernelBase):
         cursor_end = cursor_pos
 
         defer.returnValue({
-                'matches': sorted(list(set(matches_full))),
-                'cursor_start':cursor_start,
-                'cursor_end':cursor_end,
-                'metadata':{},
-                'status': 'ok'
+            'matches': sorted(list(set(matches_full))),
+            'cursor_start':cursor_start,
+            'cursor_end':cursor_end,
+            'metadata':{},
+            'status': 'ok'
         })
 
     def do_interrupt(self):
