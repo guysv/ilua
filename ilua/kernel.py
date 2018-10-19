@@ -161,40 +161,43 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
 
         defer.returnValue({'status': result['payload']})
+    
+    def get_last_obj(self, code, cursor_pos):
+        all_tokens = list(self.lexer.get_tokens_unprocessed(code[:cursor_pos]))
 
-    @defer.inlineCallbacks
-    def do_complete(self, code, cursor_pos):
-        tokens = list(self.lexer.get_tokens_unprocessed(code[:cursor_pos]))
-
-        if not tokens:
-            initial = ""
-        elif tokens[-1][1] == token.Name:
-            # Last token is part of a name, keep it to narrow down options
-            initial = tokens.pop()[2]
-        else:
-            initial = ""
-        last_obj_tokens = itertools.takewhile(lambda x: x[1] == token.Name or
+        unordered_tokens = itertools.takewhile(lambda x: x[1] == token.Name or
                                                         x[2] in '.:',
-                                              tokens[::-1])
-        last_obj_tokens = list(last_obj_tokens)
-        breadcrumbs = []
-        now_name = True
-        for t in last_obj_tokens[1:]:
+                                              all_tokens[::-1])
+        unordered_tokens = list(unordered_tokens)
+        
+        last_obj = []
+        if not unordered_tokens:
+            return last_obj
+        
+        now_name = token.Name == unordered_tokens[0][1]
+        for i, t in enumerate(unordered_tokens):
             if now_name and t[1] == token.Name:
-                breadcrumbs.insert(0, t[2])
-            elif now_name and t[1] != token.Name:
-                break
-            elif not now_name and not t[2] == '.':
+                last_obj.insert(0, t[2])
+            elif not now_name and i < 2 and t[2] == ":":
+                last_obj.insert(0, t[2])
+            elif not now_name and  t[2] == ".":
+                last_obj.insert(0, t[2])
+            else:
                 break
             now_name = not now_name
         
-        only_methods = False
-        if not last_obj_tokens:
-            pass
-        elif last_obj_tokens[0][2] == ':' and breadcrumbs != []:
-            only_methods = True
-        elif last_obj_tokens[0][2] != '.':
-            breadcrumbs = []
+        if last_obj and last_obj[0] in ".:":
+            last_obj.pop(0)
+        
+        return last_obj
+
+    @defer.inlineCallbacks
+    def do_complete(self, code, cursor_pos):
+        last_obj = self.get_last_obj(code, cursor_pos)
+        initial = last_obj.pop() if last_obj and last_obj[-1] not in ".:" \
+                  else ""
+        only_methods = last_obj[-1] == ":" if last_obj else False
+        breadcrumbs = last_obj[::2]
         
         result = yield threads.deferToThread(self.send_message,
                                              {"type": "complete", "payload": {
@@ -202,7 +205,7 @@ class ILuaKernel(KernelBase):
                                               'only_methods': only_methods}})
         
         matches = filter(lambda x: x.startswith(initial), result['payload'])
-        matches_prefix = "".join([t[2] for t in last_obj_tokens[::-1]])
+        matches_prefix = "".join(last_obj)
         matches_full = [matches_prefix + m for m in matches]
         
         cursor_start = cursor_pos - sum([len(s) for s in breadcrumbs]) \
