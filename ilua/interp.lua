@@ -113,10 +113,13 @@ end
 
 local function handle_complete(breadcrumbs, only_methods)
     local subject_obj = dynamic_env
+    local matches = {}
     for _, key in ipairs(breadcrumbs) do
         subject_obj = subject_obj[key]
+        if not subject_obj then
+            return matches
     end
-    local matches = {}
+    end
     get_matches(subject_obj, matches, methods_only)
     return matches
 end
