@@ -118,10 +118,25 @@ local function handle_complete(breadcrumbs, only_methods)
         subject_obj = subject_obj[key]
         if not subject_obj then
             return matches
-    end
+        end
     end
     get_matches(subject_obj, matches, methods_only)
     return matches
+end
+
+local function handle_info(breadcrumbs)
+    local subject_obj = dynamic_env
+    for _, key in ipairs(breadcrumbs) do
+        subject_obj = subject_obj[key]
+        if not subject_obj then
+            return false
+        end
+    end
+    if type(subject_obj) == "function" then
+        return debug.getinfo(subject_obj, "S")
+    else
+        return false -- nil will be lost in json encoding
+    end
 end
 
 local cmd_pipe = assert(io.open(cmd_pipe_path, "rb"))
@@ -162,6 +177,12 @@ while true do
         netstring.write(ret_pipe, json.encode({
             type = "complete",
             payload = matches
+        }))
+    elseif message.type == 'info' then
+        local info = handle_info(message.payload.breadcrumbs)
+        netstring.write(ret_pipe, json.encode({
+            type = "info",
+            payload = info
         }))
     else
         error("Unknown message type")
