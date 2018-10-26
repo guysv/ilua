@@ -1,3 +1,10 @@
+# ILua
+# Copyright (C) 2018  guysv
+
+# This file is part of ILua which is released under GPLv2.
+# See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
+# for full license details.
+
 from itertools import islice, takewhile, dropwhile
 from pygments import token, highlight
 from pygments.lexers import _lua_builtins
