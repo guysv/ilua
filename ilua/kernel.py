@@ -12,21 +12,23 @@ import functools
 import itertools
 import threading
 
-from pygments.lexers import _lua_builtins, scripting
-from pygments import token
-
 if os.name == 'nt':
     import win32api
     import win32con
+
+import termcolor
 
 from twisted.internet import reactor, protocol, defer, threads
 from txkernel.kernelbase import KernelBase
 from txkernel.kernelapp import KernelApp
 
 from .pipe import Pipe, NetstringPipe
+from .inspector import Inspector
 
 INTERPRETER_SCRIPT = os.path.join(os.path.dirname(__file__), "interp.lua")
 LUALIBS_PATH = os.path.join(os.path.dirname(__file__), "lualibs")
+
+_bold_red = lambda s: termcolor.colored(s, "red", attrs=['bold'])
 
 class OutputCapture(protocol.ProcessProtocol):
     def __init__(self, message_sink):
@@ -55,8 +57,7 @@ class ILuaKernel(KernelBase):
 
     def __init__(self, *args, **kwargs):
         super(ILuaKernel, self).__init__(*args, **kwargs)
-        disabled_modules = list(_lua_builtins.MODULES)
-        self.lexer = scripting.LuaLexer(disabled_modules=disabled_modules)
+        self.inspector = Inspector()
 
         self.log.debug("Opening pipes")
         # Pipe setup
@@ -161,39 +162,10 @@ class ILuaKernel(KernelBase):
                                              "payload": code})
 
         defer.returnValue({'status': result['payload']})
-    
-    def get_last_obj(self, code, cursor_pos):
-        all_tokens = list(self.lexer.get_tokens_unprocessed(code[:cursor_pos]))
-
-        unordered_tokens = itertools.takewhile(lambda x: x[1] == token.Name or
-                                                        x[2] in '.:',
-                                              all_tokens[::-1])
-        unordered_tokens = list(unordered_tokens)
-        
-        last_obj = []
-        if not unordered_tokens:
-            return last_obj
-        
-        now_name = token.Name == unordered_tokens[0][1]
-        for i, t in enumerate(unordered_tokens):
-            if now_name and t[1] == token.Name:
-                last_obj.insert(0, t[2])
-            elif not now_name and i < 2 and t[2] == ":":
-                last_obj.insert(0, t[2])
-            elif not now_name and  t[2] == ".":
-                last_obj.insert(0, t[2])
-            else:
-                break
-            now_name = not now_name
-        
-        if last_obj and last_obj[0] in ".:":
-            last_obj.pop(0)
-        
-        return last_obj
 
     @defer.inlineCallbacks
     def do_complete(self, code, cursor_pos):
-        last_obj = self.get_last_obj(code, cursor_pos)
+        last_obj = self.inspector.get_last_obj(code, cursor_pos)
         initial = last_obj.pop() if last_obj and last_obj[-1] not in ".:" \
                   else ""
         only_methods = last_obj[-1] == ":" if last_obj else False
@@ -218,6 +190,59 @@ class ILuaKernel(KernelBase):
             'cursor_end':cursor_end,
             'metadata':{},
             'status': 'ok'
+        })
+    
+    _EMPTY_INSPECTION = {
+        "status": "ok",
+        "found": False,
+        "data": {},
+        "metadata": {}
+    }
+
+    @defer.inlineCallbacks
+    def do_inspect(self, code, cursor_pos, detail_level):
+        last_obj = self.inspector.get_last_obj(code, cursor_pos)
+        breadcrumbs = last_obj[::2]
+
+        result = yield threads.deferToThread(self.send_message,
+                                             {"type": "info", "payload": {
+                                              'breadcrumbs': breadcrumbs}})
+        
+        if not result['payload']:
+            defer.returnValue(self._EMPTY_INSPECTION.copy())
+        
+        info = result['payload']
+
+        text_parts = []
+
+        if info['source'].startswith("@"):
+            # Source is available, parse source file for info
+            # TODO: caching?
+            source_file = info['source'][1:]
+            line = int(info['linedefined'])
+            documentation = self.inspector.get_doc(source_file, line)
+            text_parts.append("{}\n{}".format(_bold_red("Documentation:"),
+                                              documentation))
+
+            if detail_level >= 1:
+                last_line = int(info['lastlinedefined'])
+                source = self.inspector.get_source(source_file, line,
+                                                   last_line)
+                text_parts.append("{}\n{}".format(_bold_red("Source:"),
+                                                  source))
+            
+            text_parts.append("{} {}".format(_bold_red("Path:"), source_file))
+        else:
+            # TODO: attemp to recover docs from manual
+            defer.returnValue(self._EMPTY_INSPECTION.copy())
+        
+        defer.returnValue({
+            'status': 'ok',
+            'found': True,
+            'data': {
+                'text/plain': "\n".join(text_parts)
+            },
+            'metadata': {}
         })
 
     def do_interrupt(self):
