@@ -24,6 +24,7 @@ from txkernel.kernelapp import KernelApp
 
 from .pipe import Pipe, NetstringPipe
 from .inspector import Inspector
+from .version import version as ilua_version
 
 INTERPRETER_SCRIPT = os.path.join(os.path.dirname(__file__), "interp.lua")
 LUALIBS_PATH = os.path.join(os.path.dirname(__file__), "lualibs")
@@ -45,7 +46,7 @@ class OutputCapture(protocol.ProcessProtocol):
 
 class ILuaKernel(KernelBase):
     implementation = 'ILua'
-    implementation_version = '1.0'
+    implementation_version = ilua_version
     language = "lua"
     lanugae_version = "n/a"
     language_info = {

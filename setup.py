@@ -4,12 +4,17 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
-
+import re
+import os.path
 from setuptools import setup, find_packages
+
+with open(os.path.join(os.path.dirname(__file__), "ilua/version.py")) as \
+        version_file:
+    version = re.match(r'version = "(.*)"', version_file.read()).group(1)
 
 setup(
     name='ilua',
-    version='0.1.0',
+    version=version,
     packages=find_packages(),
 
     package_data={
