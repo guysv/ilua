@@ -18,7 +18,7 @@ setup(
             'lualibs/builtins.lua',
             'lualibs/json.lua/json.lua',
             'lualibs/netstring.lua/netstring.lua',
-            'lualibs/netstring.lua/inspect.lua',
+            'lualibs/inspect.lua/inspect.lua',
         ]
     },
 
