@@ -13,6 +13,7 @@ local lib_path = assert(os.getenv("ILUA_LIB_PATH"))
 local netstring = assert(dofile(lib_path .. "/netstring.lua/netstring.lua"))
 local json = assert(dofile(lib_path .. "/json.lua/json.lua"))
 local inspect = assert(dofile(lib_path .. "/inspect.lua/inspect.lua"))
+local builtins = assert(dofile(lib_path .. "/builtins.lua"))
 
 -- Compatibility setup
 table.pack = table.pack or function (...)
@@ -132,10 +133,19 @@ local function handle_info(breadcrumbs)
             return false
         end
     end
-    if type(subject_obj) == "function" then
-        return debug.getinfo(subject_obj, "S")
-    else
+    if type(subject_obj) ~= "function" then
         return false -- nil will be lost in json encoding
+    else
+        local info = debug.getinfo(subject_obj, "S")
+        local builtin_info = builtins[subject_obj]
+        if builtin_info then
+            info.preloaded_info = true
+            info.func_signature = builtin_info['signature']
+            info.func_documentation = builtin_info['documentation']
+        else
+            info.preloaded_info = false
+        end
+        return info
     end
 end
 

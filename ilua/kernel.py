@@ -215,7 +215,13 @@ class ILuaKernel(KernelBase):
 
         text_parts = []
 
-        if info['source'].startswith("@"):
+        if info['preloaded_info']:
+            text_parts.append("{} {}".format(_bold_red("Signature:"),
+                                              info['func_signature']))
+            text_parts.append("{}\n{}".format(_bold_red("Documentation:"),
+                                              info['func_documentation']))
+            text_parts.append("{} {}".format(_bold_red("Path:"), "n/a"))
+        elif info['source'].startswith("@"):
             # Source is available, parse source file for info
             # TODO: caching?
             source_file = info['source'][1:]
@@ -233,7 +239,6 @@ class ILuaKernel(KernelBase):
             
             text_parts.append("{} {}".format(_bold_red("Path:"), source_file))
         else:
-            # TODO: attemp to recover docs from manual
             defer.returnValue(self._EMPTY_INSPECTION.copy())
         
         defer.returnValue({

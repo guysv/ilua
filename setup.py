@@ -15,6 +15,7 @@ setup(
     package_data={
         'ilua': [
             'interp.lua',
+            'lualibs/builtins.lua',
             'lualibs/json.lua/json.lua',
             'lualibs/netstring.lua/netstring.lua',
             'lualibs/netstring.lua/inspect.lua',
