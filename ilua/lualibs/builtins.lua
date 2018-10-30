@@ -1501,8 +1501,8 @@ local load = loadstring or load
 local func_to_info = {}
 
 for func_name, info in pairs(docs_dict) do
-  local _, func = pcall(load("return " .. func_name))
-  if func then
+  local success, func = pcall(load("return " .. func_name))
+  if success and func then
     func_to_info[func] = info
   end
 end
