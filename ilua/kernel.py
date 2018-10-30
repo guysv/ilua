@@ -19,6 +19,7 @@ if os.name == 'nt':
 import termcolor
 
 from twisted.internet import reactor, protocol, defer, threads
+from twisted.logger import Logger
 from txkernel.kernelbase import KernelBase
 from txkernel.kernelapp import KernelApp
 
@@ -32,6 +33,8 @@ LUALIBS_PATH = os.path.join(os.path.dirname(__file__), "lualibs")
 _bold_red = lambda s: termcolor.colored(s, "red", attrs=['bold'])
 
 class OutputCapture(protocol.ProcessProtocol):
+    log = Logger()
+
     def __init__(self, message_sink):
         self.message_sink = message_sink
 
@@ -39,10 +42,14 @@ class OutputCapture(protocol.ProcessProtocol):
         self.transport.closeStdin()
 
     def outReceived(self, data):
-        self.message_sink("stdout", data.decode("utf-8"))
+        data_utf8 = data.decode("utf-8")
+        self.log.debug("Received stdout data: {data}", data=repr(data_utf8))
+        self.message_sink("stdout", data_utf8)
 
     def errReceived(self, data):
-        self.message_sink("stdout", data.decode("utf-8"))
+        data_utf8 = data.decode("utf-8")
+        self.log.debug("Received stdout data: {data}", data=repr(data_utf8))
+        self.message_sink("stderr", data_utf8)
 
 class ILuaKernel(KernelBase):
     implementation = 'ILua'
@@ -91,23 +98,33 @@ class ILuaKernel(KernelBase):
         self.cmd_pipe.connect()
         self.ret_pipe.connect()
 
-        test_payload = "feedacdc"
-        self.cmd_pipe.stream.write_netstring(json.dumps({"type": "echo",
-                                                         "payload": test_payload}).encode("utf-8"))
-        self.cmd_pipe.stream.flush()
-
-        self.log.debug("Wrote test message to cmd_pipe")
-        if json.loads(self.ret_pipe.stream.read_netstring())["payload"] != test_payload:
-            raise Exception("placeholder")
-        self.log.debug("Read test message from ret_pipe")
+        returned = self.send_message({"type": "execute",
+                                     "payload": "nil, _VERSION"})
+        
+        if not returned["payload"]['success']:
+            self.log.warn("Version request failed")
+        else:
+            version = re.findall(r"Lua (\d(?:\.\d)+)",
+                                 returned['payload']['returned'])
+            if not version:
+                self.log.warn("Failed to parse version from interpreter"
+                              " response")
+                self.log.debug("Response: {response}",
+                               response=returned['payload']['returned'])
+            else:
+                self.lanugae_version = version[0]
+                self.log.debug("Lua version is {version}", version=version[0])
+            
 
     def send_message(self, message):
         message_json = json.dumps(message).encode("utf-8")
 
         with self.pipes_lock:
             self.cmd_pipe.stream.write_netstring(message_json)
+            self.log.debug("Wrote test message to cmd_pipe")
             self.cmd_pipe.stream.flush()
             resp = self.ret_pipe.stream.read_netstring()
+            self.log.debug("Read test message from ret_pipe")
 
         return json.loads(resp.decode("utf8", "ignore"))
 
