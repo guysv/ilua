@@ -21,8 +21,8 @@ import termcolor
 from twisted.internet import reactor, protocol, defer, threads
 from twisted.logger import Logger
 from txkernel.kernelbase import KernelBase
-from txkernel.kernelapp import KernelApp
 
+from .app import ILuaApp
 from .pipe import Pipe, NetstringPipe
 from .inspector import Inspector
 from .version import version as ilua_version
@@ -67,6 +67,8 @@ class ILuaKernel(KernelBase):
         super(ILuaKernel, self).__init__(*args, **kwargs)
         self.inspector = Inspector()
 
+        self.lua_interpreter = kwargs.pop("lua_interpreter")
+
         self.log.debug("Opening pipes")
         # Pipe setup
         self.cmd_pipe = NetstringPipe.cmd_pipe()
@@ -84,15 +86,17 @@ class ILuaKernel(KernelBase):
             'ILUA_RET_PATH': self.ret_pipe.path,
             'ILUA_LIB_PATH': LUALIBS_PATH
         })
+
         # pylint: disable=no-member
         if os.name == "nt":
             self.lua_process = reactor.spawnProcess(proto, None,
-                                                    ['lua', INTERPRETER_SCRIPT],
+                                                    [self.lua_interpreter, INTERPRETER_SCRIPT],
                                                     lua_env)
         else:
-            self.lua_process = reactor.spawnProcess(proto, 'lua',
-                                                    ['lua', INTERPRETER_SCRIPT],
+            self.lua_process = reactor.spawnProcess(proto, self.lua_interpreter,
+                                                    [self.lua_interpreter, INTERPRETER_SCRIPT],
                                                     lua_env)
+            os.waitpid(self.lua_process.pid, os.WNOHANG)
 
         self.log.debug("Connecting to lua")
         self.cmd_pipe.connect()
@@ -114,7 +118,6 @@ class ILuaKernel(KernelBase):
             else:
                 self.lanugae_version = version[0]
                 self.log.debug("Lua version is {version}", version=version[0])
-            
 
     def send_message(self, message):
         message_json = json.dumps(message).encode("utf-8")
@@ -280,4 +283,4 @@ if __name__ == '__main__':
     if os.name == "nt":
         import signal
         signal.signal(signal.SIGINT, lambda *args: None)
-    KernelApp(ILuaKernel).run()
+    ILuaApp(ILuaKernel).run()
