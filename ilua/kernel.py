@@ -13,17 +13,19 @@ import itertools
 import threading
 
 if os.name == 'nt':
+    # pylint: disable=E0401
     import win32api
     import win32con
 
 import termcolor
 
 from twisted.internet import reactor, protocol, defer, threads
+from twisted.protocols import basic
 from twisted.logger import Logger
 from txkernel.kernelbase import KernelBase
 
 from .app import ILuaApp
-from .pipe import Pipe, NetstringPipe
+from .namedpipe import CoupleOPipes, get_pipe_path
 from .inspector import Inspector
 from .version import version as ilua_version
 
@@ -39,6 +41,7 @@ class OutputCapture(protocol.ProcessProtocol):
         self.message_sink = message_sink
 
     def connectionMade(self):
+        self.log.debug("Process is running")
         self.transport.closeStdin()
 
     def outReceived(self, data):
@@ -50,6 +53,25 @@ class OutputCapture(protocol.ProcessProtocol):
         data_utf8 = data.decode("utf-8")
         self.log.debug("Received stdout data: {data}", data=repr(data_utf8))
         self.message_sink("stderr", data_utf8)
+
+class InterpreterProtocol(basic.NetstringReceiver):
+    log = Logger()
+    queue = defer.DeferredQueue()
+
+    def connectionMade(self):
+        self.log.debug("Interpreter connections eastablished")
+    
+    def stringReceived(self, string):
+        response = json.loads(string.decode("utf8", "ignore"))
+        self.responseReceived(response)
+    
+    def sendRequest(self, request):
+        request = json.dumps(request).encode("utf-8")
+        self.sendString(request)
+        return self.queue.get()
+    
+    def responseReceived(self, response):
+        self.queue.put(response)
 
 class ILuaKernel(KernelBase):
     implementation = 'ILua'
@@ -67,14 +89,9 @@ class ILuaKernel(KernelBase):
         super(ILuaKernel, self).__init__(*args, **kwargs)
         self.inspector = Inspector()
 
+        self.pipes = CoupleOPipes(get_pipe_path("ret"), get_pipe_path("cmd"))
+
         self.lua_interpreter = kwargs.pop("lua_interpreter")
-
-        self.log.debug("Opening pipes")
-        # Pipe setup
-        self.cmd_pipe = NetstringPipe.cmd_pipe()
-        self.ret_pipe = NetstringPipe.ret_pipe()
-
-        self.pipes_lock = threading.Lock()
 
         # Lua process setup
         self.log.debug("Launching child lua")
@@ -82,28 +99,30 @@ class ILuaKernel(KernelBase):
             return self.send_update("stream", {"name": stream, "text": data})
         proto = OutputCapture(message_sink)
         lua_env = os.environ.update({
-            'ILUA_CMD_PATH': self.cmd_pipe.path,
-            'ILUA_RET_PATH': self.ret_pipe.path,
+            'ILUA_CMD_PATH': self.pipes.out_pipe.path,
+            'ILUA_RET_PATH': self.pipes.in_pipe.path,
             'ILUA_LIB_PATH': LUALIBS_PATH
         })
 
         # pylint: disable=no-member
         if os.name == "nt":
             self.lua_process = reactor.spawnProcess(proto, None,
-                                                    [self.lua_interpreter, INTERPRETER_SCRIPT],
+                                                    [self.lua_interpreter,
+                                                     INTERPRETER_SCRIPT],
                                                     lua_env)
         else:
             self.lua_process = reactor.spawnProcess(proto, self.lua_interpreter,
-                                                    [self.lua_interpreter, INTERPRETER_SCRIPT],
+                                                    [self.lua_interpreter,
+                                                     INTERPRETER_SCRIPT],
                                                     lua_env)
-            os.waitpid(self.lua_process.pid, os.WNOHANG)
-
-        self.log.debug("Connecting to lua")
-        self.cmd_pipe.connect()
-        self.ret_pipe.connect()
-
-        returned = self.send_message({"type": "execute",
-                                     "payload": "nil, _VERSION"})
+    
+    @defer.inlineCallbacks
+    def do_startup(self):
+        self.proto = yield self.pipes.connect(
+            protocol.Factory.forProtocol(InterpreterProtocol))
+        
+        returned = yield self.proto.sendRequest({"type": "execute",
+                                                "payload": "nil, _VERSION"})
         
         if not returned["payload"]['success']:
             self.log.warn("Version request failed")
@@ -119,26 +138,13 @@ class ILuaKernel(KernelBase):
                 self.lanugae_version = version[0]
                 self.log.debug("Lua version is {version}", version=version[0])
 
-    def send_message(self, message):
-        message_json = json.dumps(message).encode("utf-8")
-
-        with self.pipes_lock:
-            self.cmd_pipe.stream.write_netstring(message_json)
-            self.log.debug("Wrote test message to cmd_pipe")
-            self.cmd_pipe.stream.flush()
-            resp = self.ret_pipe.stream.read_netstring()
-            self.log.debug("Read test message from ret_pipe")
-
-        return json.loads(resp.decode("utf8", "ignore"))
-
     @defer.inlineCallbacks
     def do_execute(self, code, silent, store_history=True, user_expressions=None,
                    allow_stdin=False):
         self.execution_count += 1
 
-        result = yield threads.deferToThread(self.send_message,
-                                             {"type": "execute",
-                                             "payload": code})
+        result = yield self.proto.sendRequest({"type": "execute",
+                                              "payload": code})
 
         if result["payload"]["success"]:
             if result['payload']['returned'] != "" and not silent:
@@ -178,9 +184,8 @@ class ILuaKernel(KernelBase):
 
     @defer.inlineCallbacks
     def do_is_complete(self, code):
-        result = yield threads.deferToThread(self.send_message,
-                                             {"type": "is_complete",
-                                             "payload": code})
+        result = yield self.proto.sendRequest({"type": "is_complete",
+                                               "payload": code})
 
         defer.returnValue({'status': result['payload']})
 
@@ -192,10 +197,11 @@ class ILuaKernel(KernelBase):
         only_methods = last_obj[-1] == ":" if last_obj else False
         breadcrumbs = last_obj[::2]
         
-        result = yield threads.deferToThread(self.send_message,
-                                             {"type": "complete", "payload": {
-                                              'breadcrumbs': breadcrumbs,
-                                              'only_methods': only_methods}})
+        result = yield self.proto.sendRequest({
+            "type": "complete",
+            "payload": {
+                'breadcrumbs':breadcrumbs,
+                'only_methods': only_methods}})
         
         matches = filter(lambda x: x.startswith(initial), result['payload'])
         matches_prefix = "".join(last_obj)
@@ -225,9 +231,9 @@ class ILuaKernel(KernelBase):
         last_obj = self.inspector.get_last_obj(code, cursor_pos)
         breadcrumbs = last_obj[::2]
 
-        result = yield threads.deferToThread(self.send_message,
-                                             {"type": "info", "payload": {
-                                              'breadcrumbs': breadcrumbs}})
+        result = yield self.proto.sendRequest({"type": "info",
+                                               "payload": {'breadcrumbs':
+                                                           breadcrumbs}})
         
         if not result['payload']:
             defer.returnValue(self._EMPTY_INSPECTION.copy())
@@ -275,8 +281,7 @@ class ILuaKernel(KernelBase):
         self.log.warn("ILua does not support keyboard interrupts")
 
     def on_stop(self):
-        self.cmd_pipe.close()
-        self.ret_pipe.close()
+        self.pipes.loseConnection()
         self.lua_process.signalProcess("KILL")
 
 if __name__ == '__main__':

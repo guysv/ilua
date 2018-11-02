@@ -1,11 +1,19 @@
 import os
 import errno
+from jupyter_core.paths import jupyter_runtime_dir
 from twisted.internet import abstract, defer, fdesc, task
+
+
+def get_pipe_path(name):
+    return os.path.join(jupyter_runtime_dir(),
+                        "ilua_{}_{}".format(name, os.getpid()))
 
 class UnixFifo(abstract.FileDescriptor):
     def __init__(self, path, mode, reactor=None):
         super(UnixFifo, self).__init__(reactor=reactor)
         self.path = path
+        os.mkfifo(self.path)
+
         self.mode = mode
         self._actual_mode = os.O_NONBLOCK
         if 'r' in self.mode:
@@ -16,7 +24,7 @@ class UnixFifo(abstract.FileDescriptor):
             raise ValueError("mode must be 'r' or 'w'")
     
     def pipeOpened(self):
-        print(self.path + " opened")
+        pass
     
     def dataReceived(self, data):
         pass
@@ -32,8 +40,6 @@ class UnixFifo(abstract.FileDescriptor):
     
     @defer.inlineCallbacks
     def open(self):
-        os.mkfifo(self.path)
-        
         self._open_loop = task.LoopingCall(self._try_open)
         # HACK: I failed to figure out how to open a fifo for write
         #       without polling.. This could panelize startup time
