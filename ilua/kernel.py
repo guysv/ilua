@@ -22,9 +22,9 @@ import termcolor
 from twisted.internet import reactor, protocol, defer, threads
 from twisted.protocols import basic
 from twisted.logger import Logger
+
 from txkernel.kernelbase import KernelBase
 
-from .app import ILuaApp
 from .namedpipe import CoupleOPipes, get_pipe_path
 from .proto import InterpreterProtocol, OutputCapture
 from .inspector import Inspector
@@ -60,7 +60,7 @@ class ILuaKernel(KernelBase):
         def message_sink(stream, data):
             return self.send_update("stream", {"name": stream, "text": data})
         proto = OutputCapture(message_sink)
-        lua_env = os.environ.update({
+        os.environ.update({
             'ILUA_CMD_PATH': self.pipes.out_pipe.path,
             'ILUA_RET_PATH': self.pipes.in_pipe.path,
             'ILUA_LIB_PATH': LUALIBS_PATH
@@ -70,13 +70,11 @@ class ILuaKernel(KernelBase):
         if os.name == "nt":
             self.lua_process = reactor.spawnProcess(proto, None,
                                                     [self.lua_interpreter,
-                                                     INTERPRETER_SCRIPT],
-                                                    lua_env)
+                                                     INTERPRETER_SCRIPT])
         else:
             self.lua_process = reactor.spawnProcess(proto, self.lua_interpreter,
                                                     [self.lua_interpreter,
-                                                     INTERPRETER_SCRIPT],
-                                                    lua_env)
+                                                     INTERPRETER_SCRIPT])
     
     @defer.inlineCallbacks
     def do_startup(self):
@@ -245,9 +243,3 @@ class ILuaKernel(KernelBase):
     def on_stop(self):
         self.pipes.loseConnection()
         self.lua_process.signalProcess("KILL")
-
-if __name__ == '__main__':
-    if os.name == "nt":
-        import signal
-        signal.signal(signal.SIGINT, lambda *args: None)
-    ILuaApp(ILuaKernel).run()
