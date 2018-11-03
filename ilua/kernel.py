@@ -70,11 +70,13 @@ class ILuaKernel(KernelBase):
         if os.name == "nt":
             self.lua_process = reactor.spawnProcess(proto, None,
                                                     [self.lua_interpreter,
-                                                     INTERPRETER_SCRIPT])
+                                                     INTERPRETER_SCRIPT],
+                                                    None)
         else:
             self.lua_process = reactor.spawnProcess(proto, self.lua_interpreter,
                                                     [self.lua_interpreter,
-                                                     INTERPRETER_SCRIPT])
+                                                     INTERPRETER_SCRIPT],
+                                                    None)
     
     @defer.inlineCallbacks
     def do_startup(self):
