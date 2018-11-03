@@ -5,7 +5,7 @@ if os.name == "posix":
     from ._unixfifo import UnixFifo as NamedPipe, get_pipe_path
 elif os.name == "nt":
     # pylint: disable=E0401
-    from ._win32namedpipe import NamedPipe
+    from ._win32namedpipe import Win32NamedPipe as NamedPipe, get_pipe_path
 else:
     raise RuntimeError("os.name {} is not supported".format(os.name))
 
@@ -22,32 +22,32 @@ class CoupleOPipes(object):
 
         self.disconnecting = 0
 
-    @defer.inlineCallbacks    
+    @defer.inlineCallbacks
     def connect(self, protocolFactory):
-        yield self.in_pipe.open()
-        yield self.out_pipe.open()
+        in_opened = self.in_pipe.open()
+        out_opened = self.out_pipe.open()
+        yield in_opened
+        yield out_opened
 
         proto = protocolFactory.buildProtocol(PipeAddress())
-        def foo(data):
-            proto.dataReceived(data)
-        self.in_pipe.dataReceived = foo
+        self.in_pipe.dataReceived = lambda data: proto.dataReceived(data)
         proto.makeConnection(self)
         defer.returnValue(proto)
-    
+
     def write(self, data):
         self.out_pipe.write(data)
-    
+
     def writeSequence(self, data):
         self.out_pipe.writeSequence(data)
-    
+
     def loseConnection(self):
         self.in_pipe.loseConnection()
         self.out_pipe.loseConnection()
 
         self.disconnecting = 1
-    
+
     def getPeer(self):
         return PipeAddress()
-    
+
     def getHost(self):
         return PipeAddress()
