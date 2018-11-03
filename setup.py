@@ -6,10 +6,12 @@
 # for full license details.
 import re
 import os.path
+import glob
 from setuptools import setup, find_packages
 
-with open(os.path.join(os.path.dirname(__file__), "ilua/version.py")) as \
-        version_file:
+here = os.path.dirname(__file__)
+
+with open(os.path.join(here, "ilua/version.py")) as version_file:
     version = re.match(r'version = "(.*)"', version_file.read()).group(1)
 
 setup(
@@ -26,6 +28,11 @@ setup(
             'lualibs/inspect.lua/inspect.lua',
         ]
     },
+
+    data_files=[
+        ("share/jupyter/kernels/lua",
+         glob.glob(os.path.join(here, "defaultspec/*")))
+    ],
 
     install_requires=['twisted', 'termcolor', 'txkernel', 'jupyter_core',
                       'jupyter_client']
