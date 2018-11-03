@@ -18,5 +18,8 @@ class ILuaConsoleApp(ILuaApp):
         #       IPython's fancy traitlets framework
         ZMQTerminalIPythonApp.launch_instance(argv=['--kernel', 'lua'])
 
-if __name__ == '__main__':
+def main():
     ILuaConsoleApp().run()
+
+if __name__ == '__main__':
+    main()

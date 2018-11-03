@@ -14,8 +14,11 @@ class ILuaApp(KernelApp):
                                  help="Lua interpreter to use for code "
                                       "evaluations")
 
-if __name__ == '__main__':
+def main():
     if os.name == "nt":
         import signal
         signal.signal(signal.SIGINT, lambda *args: None)
     ILuaApp().run()
+
+if __name__ == '__main__':
+    main()

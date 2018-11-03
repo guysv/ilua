@@ -29,6 +29,12 @@ setup(
         ]
     },
 
+    entry_points={  # Optional
+        'console_scripts': [
+            'ilua=ilua.consoleapp:main',
+        ],
+    },
+
     data_files=[
         ("share/jupyter/kernels/lua",
          glob.glob(os.path.join(here, "defaultspec/*")))
