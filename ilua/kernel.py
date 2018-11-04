@@ -242,6 +242,6 @@ class ILuaKernel(KernelBase):
     def do_interrupt(self):
         self.log.warn("ILua does not support keyboard interrupts")
 
-    def on_stop(self):
+    def do_shutdown(self):
         self.pipes.loseConnection()
         self.lua_process.signalProcess("KILL")

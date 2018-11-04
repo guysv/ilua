@@ -59,3 +59,4 @@ class UnixFifo(abstract.FileDescriptor):
     def connectionLost(self, reason):
         super(UnixFifo, self).connectionLost(reason)
         os.close(self.fileno())
+        os.remove(self.path)
