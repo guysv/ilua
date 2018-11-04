@@ -6,10 +6,9 @@ from .app import ILuaApp
 class ILuaConsoleApp(ILuaApp):
     def run(self):
         cli_args = vars(self.parser.parse_args())
-        cli_args.pop("connection_file", None)
 
         os.environ.update({
-            key.upper(): cli_args[key]
+            self.ENV_VAR_PREFIX + key.upper(): cli_args[key]
             for key in cli_args
         })
 
