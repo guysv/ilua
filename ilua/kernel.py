@@ -19,7 +19,7 @@ if os.name == 'nt':
 
 import termcolor
 
-from twisted.internet import reactor, protocol, defer, threads
+from twisted.internet import reactor, protocol, defer, threads, _pollingfile
 from twisted.protocols import basic
 from twisted.logger import Logger
 
@@ -68,24 +68,25 @@ class ILuaKernel(KernelBase):
 
         # pylint: disable=no-member
         if os.name == "nt":
-            self.lua_process = reactor.spawnProcess(proto, None,
-                                                    [self.lua_interpreter,
-                                                     INTERPRETER_SCRIPT],
-                                                    None)
+            self.lua_process = self.reactor.spawnProcess(proto, None,
+                                                         [self.lua_interpreter,
+                                                          INTERPRETER_SCRIPT],
+                                                         None)
         else:
-            self.lua_process = reactor.spawnProcess(proto, self.lua_interpreter,
-                                                    [self.lua_interpreter,
-                                                     INTERPRETER_SCRIPT],
-                                                    None)
-    
+            self.lua_process = self.reactor.spawnProcess(proto,
+                                                         self.lua_interpreter,
+                                                         [self.lua_interpreter,
+                                                          INTERPRETER_SCRIPT],
+                                                         None)
+
     @defer.inlineCallbacks
     def do_startup(self):
         self.proto = yield self.pipes.connect(
             protocol.Factory.forProtocol(InterpreterProtocol))
-        
+
         returned = yield self.proto.sendRequest({"type": "execute",
                                                 "payload": "nil, _VERSION"})
-        
+
         if not returned["payload"]['success']:
             self.log.warn("Version request failed")
         else:
@@ -107,6 +108,18 @@ class ILuaKernel(KernelBase):
 
         result = yield self.proto.sendRequest({"type": "execute",
                                               "payload": code})
+
+        if os.name == "nt":
+            # Because twisted's default implementation for process output
+            # reading on windows is polling the output pipe, sometimes the
+            # kernel will finish execute requests before output is read.
+            # This causes a statistical lag in output display
+            # The sleep seems to help the execution request to lose the
+            # race, therefore eliminating the lag
+            sleep_deferred = defer.Deferred()
+            self.reactor.callLater(_pollingfile.MAX_TIMEOUT,
+                                   sleep_deferred.callback, None)
+            yield sleep_deferred
 
         if result["payload"]["success"]:
             if result['payload']['returned'] != "" and not silent:
@@ -158,17 +171,17 @@ class ILuaKernel(KernelBase):
                   else ""
         only_methods = last_obj[-1] == ":" if last_obj else False
         breadcrumbs = last_obj[::2]
-        
+
         result = yield self.proto.sendRequest({
             "type": "complete",
             "payload": {
                 'breadcrumbs':breadcrumbs,
                 'only_methods': only_methods}})
-        
+
         matches = filter(lambda x: x.startswith(initial), result['payload'])
         matches_prefix = "".join(last_obj)
         matches_full = [matches_prefix + m for m in matches]
-        
+
         cursor_start = cursor_pos - sum([len(s) for s in breadcrumbs]) \
                             - len(breadcrumbs) - len(initial)
         cursor_end = cursor_pos
@@ -180,7 +193,7 @@ class ILuaKernel(KernelBase):
             'metadata':{},
             'status': 'ok'
         })
-    
+
     _EMPTY_INSPECTION = {
         "status": "ok",
         "found": False,
@@ -196,10 +209,10 @@ class ILuaKernel(KernelBase):
         result = yield self.proto.sendRequest({"type": "info",
                                                "payload": {'breadcrumbs':
                                                            breadcrumbs}})
-        
+
         if not result['payload']:
             defer.returnValue(self._EMPTY_INSPECTION.copy())
-        
+
         info = result['payload']
 
         text_parts = []
@@ -225,11 +238,11 @@ class ILuaKernel(KernelBase):
                                                    last_line)
                 text_parts.append("{}\n{}".format(_bold_red("Source:"),
                                                   source))
-            
+
             text_parts.append("{} {}".format(_bold_red("Path:"), source_file))
         else:
             defer.returnValue(self._EMPTY_INSPECTION.copy())
-        
+
         defer.returnValue({
             'status': 'ok',
             'found': True,
