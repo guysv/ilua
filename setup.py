@@ -14,9 +14,35 @@ here = os.path.dirname(__file__)
 with open(os.path.join(here, "ilua/version.py")) as version_file:
     version = re.match(r'version = "(.*)"', version_file.read()).group(1)
 
+with open(os.path.join(here, "README.md")) as readme_file:
+    long_description = readme_file.read()
+
 setup(
     name='ilua',
     version=version,
+    description="Portable Lua kernel for Jupyter",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/guysv/ilua",
+    author="Guy Sviry",
+    author_email="sviryguy@gmail.com",
+    license="GPLv2",
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Topic :: Software Development :: Interpreters',
+        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+    ],
+    keywords='lua interactive console jupyter kernel',
+
     packages=find_packages(),
 
     package_data={
@@ -29,7 +55,7 @@ setup(
         ]
     },
 
-    entry_points={  # Optional
+    entry_points={
         'console_scripts': [
             'ilua=ilua.consoleapp:main',
         ],
