@@ -48,7 +48,7 @@ class ILuaKernel(KernelBase):
         'mimetype': 'text/plain',
         'file_extension': '.lua'
     }
-    banner = "placehoderr.."
+    banner = "ILua {}".format(ilua_version)
 
     def __init__(self, *args, **kwargs):
         super(ILuaKernel, self).__init__(*args, **kwargs)
