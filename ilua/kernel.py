@@ -12,6 +12,8 @@ import functools
 import itertools
 import threading
 
+from distutils.spawn import find_executable
+
 if os.name == 'nt':
     # pylint: disable=E0401
     import win32api
@@ -66,6 +68,11 @@ class ILuaKernel(KernelBase):
             'ILUA_RET_PATH': self.pipes.in_pipe.path,
             'ILUA_LIB_PATH': LUALIBS_PATH
         })
+
+        assert find_executable(self.lua_interpreter), ("Could not find '{}', "
+                                                       "is Lua in the system "
+                                                       "path?".format(
+                                                           self.lua_interpreter))
 
         # pylint: disable=no-member
         if os.name == "nt":
