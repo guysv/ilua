@@ -66,6 +66,7 @@ setup(
          glob.glob(os.path.join(here, "defaultspec/*")))
     ],
 
+    # TODO: decide on minimal version for dependencies
     install_requires=['twisted', 'termcolor', 'txkernel', 'jupyter_core',
                       'jupyter_client']
 )

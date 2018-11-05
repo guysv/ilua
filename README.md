@@ -9,7 +9,8 @@
  * Code inspection
    * Retreive function documentation
    * Can even retreive the function source if available (invoked with ??)
- * Unleash the power of Jupyter!
+ * Pretty-printed
+ * Access last result with _
  * Works on Linux and Windows
  * No native dependencies for Lua
  * Python's pip based installation
@@ -26,4 +27,4 @@ git clone https://github.com/guysv/ilua.git --recurse-submodules
 ```
 
 ## A Bit on ILua's Architecture
-As opposed to existing Lua Jupyter kernels which implement the Jupyter protocol in Lua (and depend on lzmq) ILua implements the communication with Jupyter in Python, which in turn talks with Lua via named-pipe IPC. This frees ILua from being bounded to a single Lua implementation ABI.
+As opposed to existing Lua Jupyter kernels which implement the Jupyter protocol in Lua (and depend on lzmq which is a native module), ILua implements the communication with Jupyter in Python, which in turn talks with Lua via named-pipe IPC. This frees ILua from being bounded to a single Lua implementation ABI.
