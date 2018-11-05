@@ -9,7 +9,7 @@
  * Code inspection
    * Retreive function documentation
    * Can even retreive the function source if available (invoked with ??)
- * Pretty-printed
+ * Pretty-printed results
  * Access last result with _
  * Works on Linux and Windows
  * No native dependencies for Lua
