@@ -16,10 +16,11 @@ if os.name == 'nt':
     # pylint: disable=E0401
     import win32api
     import win32con
+    from twisted.internet import _pollingfile
 
 import termcolor
 
-from twisted.internet import reactor, protocol, defer, threads, _pollingfile
+from twisted.internet import reactor, protocol, defer, threads
 from twisted.protocols import basic
 from twisted.logger import Logger
 
