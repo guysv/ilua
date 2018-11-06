@@ -68,5 +68,5 @@ setup(
 
     # TODO: decide on minimal version for dependencies
     install_requires=['twisted', 'termcolor', 'txkernel', 'jupyter_core',
-                      'jupyter_client']
+                      'jupyter_console']
 )
