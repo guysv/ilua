@@ -42,11 +42,11 @@ class ILuaKernel(KernelBase):
     implementation = 'ILua'
     implementation_version = ilua_version
     language = "lua"
-    lanugae_version = "n/a"
     language_info = {
         'name': 'Lua',
         'mimetype': 'text/plain',
-        'file_extension': '.lua'
+        'file_extension': '.lua',
+        'version': 'n/a'
     }
     banner = "ILua {}".format(ilua_version)
 
@@ -106,7 +106,11 @@ class ILuaKernel(KernelBase):
                 self.log.debug("Response: {response}",
                                response=returned['payload']['returned'])
             else:
-                self.lanugae_version = version[0]
+                # There is a race between the kernel startup and the kernel
+                # info request where the reply might come out before we figure
+                # out the language version. We might need to block with a
+                # deferred in the future (but this hurts startup time)
+                self.language_info['version'] = version[0]
                 self.log.debug("Lua version is {version}", version=version[0])
 
     @defer.inlineCallbacks
