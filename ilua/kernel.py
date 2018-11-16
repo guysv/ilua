@@ -259,12 +259,7 @@ class ILuaKernel(KernelBase):
             'status': 'ok',
             'found': True,
             'data': {
-                # Encoding to ascii instead of utf=8 because:
-                #   a. windows py2 colorama crash on non-ascii chars
-                #       a.1 yea I know this deals with the symptoms instead of
-                #           the problem. Feel free to offer other solutions
-                #   b. docs are usually written in english
-                'text/plain': u"\n".join(text_parts).encode("ascii", 'ignore')
+                'text/plain': u"\n".join(text_parts)
             },
             'metadata': {}
         })
