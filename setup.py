@@ -68,5 +68,5 @@ setup(
 
     # TODO: decide on minimal version for dependencies
     install_requires=['twisted', 'termcolor', 'txkernel', 'jupyter_core',
-                      'jupyter_console']
+                      'jupyter_console', 'pywin32;sys_platform=="win32"',]
 )
