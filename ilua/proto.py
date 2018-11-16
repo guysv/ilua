@@ -22,14 +22,12 @@ class OutputCapture(protocol.ProcessProtocol):
         self.transport.closeStdin()
 
     def outReceived(self, data):
-        data_utf8 = data.decode("utf-8")
-        self.log.debug("Received stdout data: {data}", data=repr(data_utf8))
-        self.message_sink("stdout", data_utf8)
+        self.log.debug("Received stdout data: {data}", data=repr(data))
+        self.message_sink("stdout", data.decode("utf8", "replace"))
 
     def errReceived(self, data):
-        data_utf8 = data.decode("utf-8")
-        self.log.debug("Received stdout data: {data}", data=repr(data_utf8))
-        self.message_sink("stderr", data_utf8)
+        self.log.debug("Received stdout data: {data}", data=repr(data))
+        self.message_sink("stderr", data.decode("utf8", "replace"))
 
 class InterpreterProtocol(basic.NetstringReceiver):
     log = Logger()
@@ -43,7 +41,7 @@ class InterpreterProtocol(basic.NetstringReceiver):
         self.responseReceived(response)
     
     def sendRequest(self, request):
-        request = json.dumps(request).encode("utf-8")
+        request = json.dumps(request).encode("utf8")
         self.sendString(request)
         return self.queue.get()
     
