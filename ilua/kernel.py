@@ -230,28 +230,28 @@ class ILuaKernel(KernelBase):
         text_parts = []
 
         if info['preloaded_info']:
-            text_parts.append("{} {}".format(_bold_red("Signature:"),
+            text_parts.append(u"{} {}".format(_bold_red("Signature:"),
                                               info['func_signature']))
-            text_parts.append("{}\n{}".format(_bold_red("Documentation:"),
+            text_parts.append(u"{}\n{}".format(_bold_red("Documentation:"),
                                               info['func_documentation']))
-            text_parts.append("{} {}".format(_bold_red("Path:"), "n/a"))
+            text_parts.append(u"{} {}".format(_bold_red("Path:"), "n/a"))
         elif info['source'].startswith("@"):
             # Source is available, parse source file for info
             # TODO: caching?
             source_file = info['source'][1:]
             line = int(info['linedefined'])
             documentation = self.inspector.get_doc(source_file, line)
-            text_parts.append("{}\n{}".format(_bold_red("Documentation:"),
+            text_parts.append(u"{}\n{}".format(_bold_red("Documentation:"),
                                               documentation))
 
             if detail_level >= 1:
                 last_line = int(info['lastlinedefined'])
                 source = self.inspector.get_source(source_file, line,
                                                    last_line)
-                text_parts.append("{}\n{}".format(_bold_red("Source:"),
+                text_parts.append(u"{}\n{}".format(_bold_red("Source:"),
                                                   source))
 
-            text_parts.append("{} {}".format(_bold_red("Path:"), source_file))
+            text_parts.append(u"{} {}".format(_bold_red("Path:"), source_file))
         else:
             defer.returnValue(self._EMPTY_INSPECTION.copy())
 
@@ -259,7 +259,12 @@ class ILuaKernel(KernelBase):
             'status': 'ok',
             'found': True,
             'data': {
-                'text/plain': "\n".join(text_parts)
+                # Encoding to ascii instead of utf=8 because:
+                #   a. windows py2 colorama crash on non-ascii chars
+                #       a.1 yea I know this deals with the symptoms instead of
+                #           the problem. Feel free to offer other solutions
+                #   b. docs are usually written in english
+                'text/plain': u"\n".join(text_parts).encode("ascii", 'ignore')
             },
             'metadata': {}
         })
