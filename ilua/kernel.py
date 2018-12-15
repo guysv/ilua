@@ -26,7 +26,7 @@ from twisted.internet import reactor, protocol, defer, threads
 from twisted.protocols import basic
 from twisted.logger import Logger
 
-from txkernel.kernelbase import KernelBase
+from .txkernel.kernelbase import KernelBase
 
 from .namedpipe import CoupleOPipes, get_pipe_path
 from .proto import InterpreterProtocol, OutputCapture

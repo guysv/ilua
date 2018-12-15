@@ -7,7 +7,7 @@
 
 import os
 from jupyter_console.app import launch_new_instance
-from txkernel.kernelapp import KernelApp
+from .txkernel.kernelapp import KernelApp
 from .kernel import ILuaKernel
 
 class ILuaApp(KernelApp):
