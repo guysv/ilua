@@ -33,7 +33,7 @@ from twisted.logger import globalLogBeginner, FilteringLogObserver, \
                            textFileLogObserver, LogLevel, PredicateResult
 from .connection import ConnectionFile
 
-class KernelApp(object):
+class AppBase(object):
     _NAME_TO_LEVEL = {
         'debug': LogLevel.debug,
         'info': LogLevel.info,

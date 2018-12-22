@@ -7,10 +7,10 @@
 
 import os
 from jupyter_console.app import launch_new_instance
-from .txkernel.kernelapp import KernelApp
+from .appbase import AppBase
 from .kernel import ILuaKernel
 
-class ILuaApp(KernelApp):
+class ILuaApp(AppBase):
     ENV_VAR_PREFIX = "ILUA_"
 
     def __init__(self, *args, **kwargs):
