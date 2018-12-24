@@ -43,8 +43,8 @@ class ILuaKernel(KernelBase):
     implementation_version = ilua_version
     language = "lua"
     language_info = {
-        'name': 'Lua',
-        'mimetype': 'text/plain',
+        'name': 'lua',
+        'mimetype': 'text/x-lua',
         'file_extension': '.lua',
         'version': 'n/a'
     }
