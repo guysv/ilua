@@ -11,8 +11,6 @@ from .appbase import AppBase
 from .kernel import ILuaKernel
 
 class ILuaApp(AppBase):
-    ENV_VAR_PREFIX = "ILUA_"
-
     def __init__(self, *args, **kwargs):
         super(ILuaApp, self).__init__(ILuaKernel, *args, **kwargs)
         self.parser.add_argument("-i", "--lua-interpreter", metavar="LUA",

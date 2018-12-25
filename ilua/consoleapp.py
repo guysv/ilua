@@ -15,7 +15,7 @@ class ILuaConsoleApp(ILuaApp):
         cli_args = vars(self.parser.parse_args())
 
         os.environ.update({
-            self.ENV_VAR_PREFIX + key.upper(): cli_args[key]
+            self.env_var_prefix + key.upper(): cli_args[key]
             for key in cli_args
         })
 

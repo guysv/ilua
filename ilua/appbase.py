@@ -42,10 +42,9 @@ class AppBase(object):
         'critical': LogLevel.critical
     }
 
-    ENV_VAR_PREFIX = "TXKERNEL_"
-
     def __init__(self, kernel_cls, *extra_kernel_args, **extra_kernel_kwargs):
         self.kernel_cls = kernel_cls
+        self.env_var_prefix = self.kernel_cls.implementation.upper() + "_"
         self.extra_kernel_args = extra_kernel_args
         self.extra_kernel_kwargs = extra_kernel_kwargs
 
@@ -104,7 +103,7 @@ class AppBase(object):
         return task.react(lambda r: self.kernel.run())
     
     def _get_default(self, env_var_name, default):
-        return os.environ.get(self.ENV_VAR_PREFIX + env_var_name, default)
+        return os.environ.get(self.env_var_prefix + env_var_name, default)
 
     @staticmethod
     def _get_socket_port(socket):
