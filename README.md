@@ -1,5 +1,5 @@
 # ILua
-*ILua* is a feature-packed, portable [Jupyter](http://jupyter.org/) kernel for the  [Lua](https://www.lua.org/) language.
+*ILua* is a feature-packed, portable console and [Jupyter](http://jupyter.org/) kernel for the  [Lua](https://www.lua.org/) language.
 ![](demo.gif)
 ## Features
  * Lua-implementation agnostic
