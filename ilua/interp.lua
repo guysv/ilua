@@ -55,9 +55,6 @@ local function load_chunk(code, env)
     local loaded, err = load_compat("return " .. code, env)
     if not loaded then
         loaded, err = load_compat(code, env)
-        if not loaded then
-            return nil, err
-        end
     end
     return loaded, err
 end
