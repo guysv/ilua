@@ -1,4 +1,4 @@
-# txkernel
+# ILua
 # Copyright (C) 2018  guysv
 
 # This file is part of ILua which is released under GPLv2.
@@ -22,7 +22,7 @@ class SignatureException(Exception):
 
 # ah "Manager", I use vague words to hide
 # the fact that I should have splitted the
-# class to a parser and builder
+# class to a parser and a builder
 class MessageManager(object):
     _SEPERATOR = b'<IDS|MSG>'
 

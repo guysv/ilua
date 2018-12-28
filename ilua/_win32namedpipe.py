@@ -10,8 +10,7 @@ import win32con
 import win32event
 import win32file
 import win32pipe
-from jupyter_core.paths import jupyter_runtime_dir
-from twisted.internet import abstract, defer, task
+from twisted.internet import abstract, defer
 
 def get_pipe_path(name):
     return "\\\\.\\pipe\\ilua_{}_{}".format(name, os.getpid())

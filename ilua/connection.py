@@ -1,4 +1,4 @@
-# txkernel
+# ILua
 # Copyright (C) 2018  guysv
 
 # This file is part of ILua which is released under GPLv2.
