@@ -1,4 +1,4 @@
-## [0.1.0] - 2018-11-06
+## [0.2.0] - UNRELEASED
 - Feature: History - ILua now remembers your executed code.
 - Tweak: Kernel application environment variable prefix is now inferred from kernel implementation field
 - Tweak: TXKernel is now merged into ILua
