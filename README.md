@@ -25,6 +25,7 @@ pip install ilua
 
 # From source
 git clone https://github.com/guysv/ilua.git --recurse-submodules
+pip install -e ilua/
 ```
 
 ## A Bit on ILua's Architecture
