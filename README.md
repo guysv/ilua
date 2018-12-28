@@ -11,6 +11,7 @@
    * Can even retreive the function source if available (invoked with ??)
  * Pretty-printed results
  * Access last result with _
+ * Cross-session execution history
  * Works on Linux and Windows
  * No native dependencies for Lua
  * Python's pip based installation

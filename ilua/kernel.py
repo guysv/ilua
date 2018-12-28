@@ -116,8 +116,6 @@ class ILuaKernel(KernelBase):
     @defer.inlineCallbacks
     def do_execute(self, code, silent, store_history=True, user_expressions=None,
                    allow_stdin=False):
-        self.execution_count += 1
-
         result = yield self.proto.sendRequest({"type": "execute",
                                               "payload": code})
 

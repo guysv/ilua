@@ -1,14 +1,15 @@
-# txkernel
+# ILua
 # Copyright (C) 2018  guysv
 
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
-
+import os
 import txzmq
 from twisted.internet import defer
 from twisted.logger import Logger
-from . import sockets, message
+from jupyter_core.paths import jupyter_data_dir
+from . import sockets, message, history
 
 class KernelBase(object):
     # default kernel_info
@@ -28,6 +29,8 @@ class KernelBase(object):
             from twisted.internet import reactor
         self.reactor = reactor
         self.connection_props = connection_props
+
+        self.history_manager = history.HistoryManager(self.get_history_path())
 
         sign_scheme = self.connection_props["signature_scheme"]
         key = self.connection_props["key"]
@@ -80,6 +83,7 @@ class KernelBase(object):
     @defer.inlineCallbacks
     def run(self):
         self.send_update("status", {'execution_state': 'starting'})
+        yield self.history_manager.connect()
         yield self.do_startup()
         self.send_update("status", {'execution_state': 'idle'})
         val = yield self.stop_deferred
@@ -105,6 +109,9 @@ class KernelBase(object):
                 content = yield self.do_kernel_info(**msg['content'])
             elif msg_type == 'execute_request':
                 resp_type = "execute_reply"
+                self.execution_count += 1
+                self.history_manager.append(msg['content']['code'],
+                                            self.execution_count)
 
                 self.send_update("execute_input",
                                  {'code': msg['content']['code'],
@@ -130,6 +137,9 @@ class KernelBase(object):
             elif msg_type == 'inspect_request':
                 resp_type = 'inspect_reply'
                 content = yield self.do_inspect(**msg['content'])
+            elif msg_type == 'history_request':
+                resp_type = 'history_reply'
+                content = yield self.do_history(**msg['content'])
             elif msg_type == 'shutdown_request':
                 resp_type = 'shutdown_reply'
 
@@ -144,6 +154,8 @@ class KernelBase(object):
             else:
                 self.log.info("No handler for request of type {req_type}",
                                req_type=msg_type)
+                self.log.debug("Unhandled request content is {content}",
+                               content=msg['content'])
                 defer.returnValue(None)
             
             msg_bin = self.message_manager.build(resp_type, content,
@@ -214,6 +226,20 @@ class KernelBase(object):
             'metadata': {}
         }
     
+    @defer.inlineCallbacks
+    def do_history(self, hist_access_type, output, raw, session=None,
+                   start=None, stop=None, n=None, pattern=None, unique=False):
+        # Most of the arguments seem too rare to be taken care of seriously
+        if hist_access_type != "tail" or not n or output:
+            defer.returnValue({
+                'history': []
+            })
+        else:
+            result = yield self.history_manager.tail(n)
+            defer.returnValue({
+                'history': result
+            })
+    
     def do_startup(self):
         pass
 
@@ -239,3 +265,8 @@ class KernelBase(object):
                   type=txzmq.ZmqEndpointType.bind):
         url = "{}://{}:{}".format(transport, addr, port)
         return txzmq.ZmqEndpoint(type, url)
+    
+    @classmethod
+    def get_history_path(cls):
+        return os.path.join(jupyter_data_dir(),
+                            "{}_history.db".format(cls.implementation.lower()))
