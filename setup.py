@@ -48,10 +48,10 @@ setup(
     package_data={
         'ilua': [
             'interp.lua',
-            'lualibs/builtins.lua',
-            'lualibs/json.lua/json.lua',
-            'lualibs/netstring.lua/netstring.lua',
-            'lualibs/inspect.lua/inspect.lua',
+            'builtins.lua',
+            'ext/json.lua',
+            'ext/netstring.lua',
+            'ext/inspect.lua',
         ]
     },
 
