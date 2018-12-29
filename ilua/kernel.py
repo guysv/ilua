@@ -34,7 +34,7 @@ from .inspector import Inspector
 from .version import version as ilua_version
 
 INTERPRETER_SCRIPT = os.path.join(os.path.dirname(__file__), "interp.lua")
-LUALIBS_PATH = os.path.join(os.path.dirname(__file__), "lualibs")
+LUA_PATH_EXTRA = os.path.join(os.path.dirname(__file__), "?.lua")
 
 _bold_red = lambda s: termcolor.colored(s, "red", attrs=['bold'])
 
@@ -66,7 +66,8 @@ class ILuaKernel(KernelBase):
         os.environ.update({
             'ILUA_CMD_PATH': self.pipes.out_pipe.path,
             'ILUA_RET_PATH': self.pipes.in_pipe.path,
-            'ILUA_LIB_PATH': LUALIBS_PATH
+            'LUA_PATH': ";".join([os.environ.get("LUA_PATH", ""),
+                                 LUA_PATH_EXTRA])
         })
 
         assert find_executable(self.lua_interpreter), ("Could not find '{}', "

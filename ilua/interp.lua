@@ -7,13 +7,11 @@
 
 local cmd_pipe_path = assert(os.getenv("ILUA_CMD_PATH"))
 local ret_pipe_path = assert(os.getenv("ILUA_RET_PATH"))
-local lib_path = assert(os.getenv("ILUA_LIB_PATH"))
 
--- Windows supports / as dirsep
-local netstring = assert(dofile(lib_path .. "/netstring.lua/netstring.lua"))
-local json = assert(dofile(lib_path .. "/json.lua/json.lua"))
-local inspect = assert(dofile(lib_path .. "/inspect.lua/inspect.lua"))
-local builtins = assert(dofile(lib_path .. "/builtins.lua"))
+local netstring = require"ext.netstring"
+local json = require"ext.json"
+local inspect = require"ext.inspect"
+local builtins = require"builtins"
 
 -- Compatibility setup
 table.pack = table.pack or function (...)
