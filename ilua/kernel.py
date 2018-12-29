@@ -66,8 +66,7 @@ class ILuaKernel(KernelBase):
         os.environ.update({
             'ILUA_CMD_PATH': self.pipes.out_pipe.path,
             'ILUA_RET_PATH': self.pipes.in_pipe.path,
-            'LUA_PATH': ";".join([os.environ.get("LUA_PATH", ""),
-                                 LUA_PATH_EXTRA])
+            'LUA_PATH': os.environ.get("LUA_PATH", ";") + ";"  + LUA_PATH_EXTRA
         })
 
         assert find_executable(self.lua_interpreter), ("Could not find '{}', "
