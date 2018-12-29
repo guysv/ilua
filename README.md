@@ -25,7 +25,12 @@ pip install ilua
 
 # From source
 git clone https://github.com/guysv/ilua.git --recurse-submodules
-pip install -e ilua/
+cd ilua
+virtualenv env
+. env/bin/activate # for unix
+env/Scripts/activate # for windows
+pip install -e .
+python setup.py install_data # pip install -e . forgets data_files...
 ```
 
 ## A Bit on ILua's Architecture
