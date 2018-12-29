@@ -150,7 +150,7 @@ local cmd_pipe = assert(io.open(cmd_pipe_path, "rb"))
 local ret_pipe = assert(io.open(ret_pipe_path, "wb"))
 
 while true do
-    local message = json.decode(netstring.read(cmd_pipe))
+    local message = json.decode(assert(netstring.read(cmd_pipe)))
     if message.type == "echo" then
         netstring.write(ret_pipe, json.encode(message))
     elseif message.type == "execute" then
