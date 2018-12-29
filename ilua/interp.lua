@@ -69,7 +69,11 @@ local function handle_execute(code)
 
     success = outcome[1]
     if not success then
-        return nil, outcome[2]
+        local traceback = outcome[2]
+        if type(traceback) ~= "string" then
+            traceback = ("(error object is a %s value)"):format(type(traceback))
+        end
+        return nil, traceback
     end
     local returned = table.pack(select(2, table.unpack(outcome, 1, outcome.n)))
     if returned.n > 0 then
