@@ -4,6 +4,10 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
+"""
+Convenience entry point for launching ilua together
+with jupyter-console. This is the `ilua` entry point
+"""
 
 import os
 from jupyter_console.app import ZMQTerminalIPythonApp
@@ -12,6 +16,11 @@ from .app import ILuaApp
 
 class ILuaConsoleApp(ILuaApp):
     def run(self):
+        """
+        Collect ILua's command line, reset it as environment
+        variables, and launch jupyter-console
+        """
+
         cli_args = vars(self.parser.parse_args())
 
         os.environ.update({

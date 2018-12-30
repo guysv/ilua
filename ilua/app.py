@@ -4,6 +4,9 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
+"""
+ILua's kernel app entry point and command-line tweaks
+"""
 
 import os
 from jupyter_console.app import launch_new_instance
@@ -20,9 +23,6 @@ class ILuaApp(AppBase):
                                       "evaluations")
 
 def main():
-    if os.name == "nt":
-        import signal
-        signal.signal(signal.SIGINT, lambda *args: None)
     ILuaApp().run()
 
 if __name__ == '__main__':

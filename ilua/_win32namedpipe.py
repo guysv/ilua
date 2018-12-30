@@ -4,6 +4,10 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
+"""
+Async Windows named-pipe IO implemented as a
+twisted FileDescriptor
+"""
 
 import os
 import win32con
@@ -13,11 +17,25 @@ import win32pipe
 from twisted.internet import abstract, defer
 
 def get_pipe_path(name):
+    """
+    Generate a named pipe path from name on windows
+    """
     return "\\\\.\\pipe\\ilua_{}_{}".format(name, os.getpid())
 
 class Win32NamedPipe(abstract.FileDescriptor):
+    """
+    Async IO implementation for Windows named-pipes
+    """
     BUFF_SIZE = 8192
     def __init__(self, path, mode, reactor=None):
+        """
+        :param path: Path to pipe (not existing yet)
+        :type path: string
+        :param mode: Read (r) or write (w) modes,
+        :type mode: string
+        :param reactor: Used reactor, defaults to None
+        :param reactor: twisted.internet.posixbase.PosixReactorBase, optional
+        """
         super(Win32NamedPipe, self).__init__(reactor=reactor)
         self.path = path
         self.mode = mode
@@ -38,9 +56,6 @@ class Win32NamedPipe(abstract.FileDescriptor):
                                                  1, 0, 0, 2000, # Arbitrary?
                                                  None)
 
-    def pipeOpened(self):
-        pass
-
     def dataReceived(self, data):
         pass
 
@@ -49,6 +64,12 @@ class Win32NamedPipe(abstract.FileDescriptor):
 
     @defer.inlineCallbacks
     def open(self):
+        """
+        Open named-pipe, starts up reading/writing
+
+        :return: a deferred firing when the named pipe is opened
+        :rtype: twisted.internet.deferred.Deferred
+        """
         self._olapped_io = win32file.OVERLAPPED()
         if 'w' in self.mode:
             self._olapped_io.hEvent = win32event.CreateEvent(None, False,
@@ -77,6 +98,10 @@ class Win32NamedPipe(abstract.FileDescriptor):
                                self._olapped_io)
 
     def pipeRead(self):
+        """
+        Read some data
+        """
+
         n = win32file.GetOverlappedResult(self._handle, self._olapped_io, 0)
         data = self._read_buffer[:n]
         self.dataReceived(data)
@@ -97,6 +122,10 @@ class Win32NamedPipe(abstract.FileDescriptor):
             self.write(chunk)
 
     def pipeWrite(self):
+        """
+        Write queued data
+        """
+
         try:
             data = self._write_queue.pop(0)
         except IndexError:

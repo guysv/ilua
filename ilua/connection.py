@@ -7,7 +7,8 @@
 
 """
 This module is in charge of parsing the
-kernel connection file
+kernel connection file as described in
+https://jupyter-client.readthedocs.io/en/stable/kernels.html#connection-files
 """
 import json
 import os
@@ -43,7 +44,13 @@ class ConnectionFile(object):
         """
         Generate new connection file props from
         defaults
+        
+        :param partial_props: predefined properties, defaults to None
+        :param partial_props: dict, optional
+        :return: ConnectionFile object with complete properties
+        :rtype: ilua.connection.ConnectionFile
         """
+
         partial_props = partial_props or {}
         props = partial_props.copy()
         props.update(cls.DEFAULT_PROPERTIES)
@@ -58,6 +65,9 @@ class ConnectionFile(object):
         """
         Write a new connection file to disk. and
         return its path
+
+        :return: path to written connection file
+        :rtype: string
         """
         name = "kernel-{pid}.json".format(pid=os.getpid())
         path = os.path.join(jupyter_runtime_dir(), name)

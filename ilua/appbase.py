@@ -34,6 +34,15 @@ from twisted.logger import globalLogBeginner, FilteringLogObserver, \
 from .connection import ConnectionFile
 
 class AppBase(object):
+    """
+    Base kernel app class that takes care of managing the connection
+    to the frontends, and allows extensions by child classes to add
+    extra command-line arguments
+
+    Child classes that wish to add extra command-line arguments may
+    use the app.parser field which is an argparse parser
+    """
+
     _NAME_TO_LEVEL = {
         'debug': LogLevel.debug,
         'info': LogLevel.info,
@@ -43,6 +52,15 @@ class AppBase(object):
     }
 
     def __init__(self, kernel_cls, *extra_kernel_args, **extra_kernel_kwargs):
+        """
+        :param kernel_cls: Kernel class to instantiate
+        :type kernel_cls: ilua.kernelbase.KernelBase
+        :param extra_kernel_args: Extra args passed to kernel_cls constructor
+        :type extra_kernel_args: tuple
+        :param extra_kernel_kwargs: Extra kwargs passed to kernel_cls constructor
+        :type extra_kernel_kwargs: dict
+        """
+
         self.kernel_cls = kernel_cls
         self.env_var_prefix = self.kernel_cls.implementation.upper() + "_"
         self.extra_kernel_args = extra_kernel_args
@@ -57,6 +75,9 @@ class AppBase(object):
                                  help="Show only certain logs")
     
     def run(self):
+        """
+        Run kernel application
+        """
         # separated from other options to give subclasses a chance to override
         self.parser.add_argument('-c', '--connection-file',
                             help="Path to existing connection file")
@@ -102,10 +123,31 @@ class AppBase(object):
         
         return task.react(lambda r: self.kernel.run())
     
-    def _get_default(self, env_var_name, default):
-        return os.environ.get(self.env_var_prefix + env_var_name, default)
+    def _get_default(self, env_var_suffix, default):
+        """
+        Get default value for arguments from environment variable
+        or given default
+        
+        :param env_var_suffix: suffix of argument's environment variable
+        :type env_var_suffix: string
+        :param default: default argument value
+        :type default: string
+        :return: Decided value
+        :rtype: string
+        """
+
+        return os.environ.get(self.env_var_prefix + env_var_suffix, default)
 
     @staticmethod
     def _get_socket_port(socket):
+        """
+        Get listening port from socket
+        
+        :param socket: socket to check
+        :type socket: txzmq.ZmqConnection
+        :return: listening port
+        :rtype: int
+        """
+
         # pylint: disable=maybe-no-member
         return urlparse(socket.socket.getsockopt(zmq.LAST_ENDPOINT)).port

@@ -7,7 +7,8 @@
 
 """
 This module parses and builds the top Jupyter
-message format
+message format as described in
+https://jupyter-client.readthedocs.io/en/stable/kernels.html#handling-messages
 """
 import json
 import hmac

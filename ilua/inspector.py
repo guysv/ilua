@@ -4,6 +4,10 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
+"""
+A collection of lexer-involved routines
+for lua code parsing
+"""
 
 from itertools import islice, takewhile, dropwhile
 from pygments import token, highlight
@@ -20,6 +24,19 @@ class Inspector(object):
         self.formatter = TerminalFormatter()
     
     def get_last_obj(self, code, cursor_pos):
+        """
+        Get the object under the cursor and break it to
+        `breadcrumbs`
+        i.e: break `assert(io.stdin:write|` to ['io','stdin','write']
+        
+        :param code: code to inspect
+        :type code: string
+        :param cursor_pos: cursor position in code
+        :type cursor_pos: int
+        :return: breadcrubs to last object in chain
+        :rtype: list
+        """
+
         all_tokens = list(self.lexer.get_tokens_unprocessed(code[:cursor_pos]))
 
         unordered_tokens = takewhile(lambda x: x[1] == token.Name or
@@ -49,6 +66,19 @@ class Inspector(object):
         return last_obj
     
     def get_doc(self, path, line):
+        """
+        Get doc string from lines above given line in
+        a given lua file
+        `line` is typically a starting line of a function
+        
+        :param path: path to source file
+        :type path: string
+        :param line: line in source
+        :type line: int
+        :return: extracted docstring
+        :rtype: string
+        """
+
         with open(path) as source:
             tokens = list(self.lexer.get_tokens_unprocessed("".join(islice(
                         source, line-1))))[::-1]
@@ -57,6 +87,20 @@ class Inspector(object):
             return "".join([t[2] for t in list(doc_tokens)[::-1]])
     
     def get_source(self, path, start_line, end_line):
+        """
+        Get source code from file at `path`, cropped
+        from `start_line` to `end_line`
+        
+        :param path: path to source file
+        :type path: string
+        :param start_line: starting line
+        :type start_line: int
+        :param end_line: ending line
+        :type end_line: int
+        :return: extracted source code
+        :rtype: string
+        """
+
         with open(path) as source:
             return highlight("".join(islice(source, start_line-1, end_line)),
                              self.lexer, self.formatter)
