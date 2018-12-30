@@ -94,7 +94,7 @@ class Win32NamedPipe(abstract.FileDescriptor):
 
     def writeSequence(self, data):
         for chunk in data:
-            self.write(data)
+            self.write(chunk)
 
     def pipeWrite(self):
         try:
