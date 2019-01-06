@@ -4,6 +4,13 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
+"""
+Twisted-based Jupyter base kernel implementation
+Pretty much a reimplementation of ipykernel.kernelbase,
+but with Twisted, which allows async code in python 2,
+and provides txzmq.
+"""
+
 import os
 import txzmq
 from twisted.internet import defer
@@ -12,6 +19,26 @@ from jupyter_core.paths import jupyter_data_dir
 from . import sockets, message, history
 
 class KernelBase(object):
+    """
+    Twisted-based Jupyter base kernel implementation,
+    implements frontend requests handling and routing.
+    
+    The base kernel exposes the API used by sub classes,
+    and provides a default implementation for a few
+    requests
+
+    The API is very similar to the stock Jupyter base
+    kernel, and mostly receives the same arguments.
+    
+    One difference between stock Jupyter and this class
+    is that all the message handling methods here return
+    a Twisted deferred, which will probably kill
+    portabillity
+
+    Subclasses only really need to implement do_execute
+    and do_is_complete.
+    """
+
     # default kernel_info
     protocol_version = '5.3.0' # TODO: duplicate var in message.py??
     # calm down linter
@@ -25,6 +52,17 @@ class KernelBase(object):
     log = Logger()
 
     def __init__(self, connection_props, reactor=None, *args, **kwargs):
+        """
+        
+        :param connection_props: Connection properties dictionary, built
+                                 by ilua.connection.ConnectionFile
+        :type connection_props: dict
+        :param reactor: Twisted reactor to use, defaults
+                        to the global one
+        :param reactor: Twisted.internet.posixbase.PosixReactorBase,
+                        optional
+        """
+
         if not reactor:
             from twisted.internet import reactor
         self.reactor = reactor
@@ -82,6 +120,13 @@ class KernelBase(object):
 
     @defer.inlineCallbacks
     def run(self):
+        """
+        Launch the kernel
+
+        :return: a deferred firing when the kernel shuts down
+        :rtype: twisted.internet.deferred.Deferred
+        """
+
         self.send_update("status", {'execution_state': 'starting'})
         yield self.history_manager.connect()
         yield self.do_startup()
@@ -94,6 +139,25 @@ class KernelBase(object):
 
     @defer.inlineCallbacks
     def handle_message(self, request_socket, sender_id, message_parts):
+        """
+        Kernel requests central handler, passed to the request
+        (shell/control) sockets. When called by a sockets,
+        message is parsed and routed to the responsible handler
+        of that request type, returning the serialized response
+        
+        :param request_socket: The socket which received the request,
+                               which also sends the response.
+                               DEPRICATED: to be moved to the sockets
+        :type request_socket: txzmq.ZmqConnection
+        :param sender_id: DEPRICATED: to be moved to the sockets
+        :type sender_id: ???
+        :param message_parts: Message data parts, to be parsed
+                              with kernel.message_manager.parse()
+        :type message_parts: list
+        :return: Serialized response
+        :rtype: list
+        """
+
         try:
             # extra ids? probebly will never be used
             # TODO: catch parsing errors
@@ -151,6 +215,7 @@ class KernelBase(object):
             elif msg_type == 'interrupt_request':
                 resp_type = 'interrupt_reply'
                 content = yield self.do_interrupt(**msg['content'])
+                content = content or {}
             else:
                 self.log.info("No handler for request of type {req_type}",
                                req_type=msg_type)
@@ -168,6 +233,14 @@ class KernelBase(object):
             self.send_update("status", {'execution_state': 'idle'})
 
     def do_kernel_info(self):
+        """
+        Handle kernel_info request
+        
+        :return: response containing kernel info
+        :rtype: dict or
+                twisted.internet.deferred.Deferred
+        """
+
         return {
             'protocol_version': self.protocol_version,
             'implementation': self.implementation,
@@ -179,12 +252,72 @@ class KernelBase(object):
     
     def do_execute(self, code, silent, store_history=True,
                    user_expressions=None, allow_stdin=False):
+        """
+        Handle execution requests. Advertize
+        returned data is to be advertized with
+        kernel.send_update("execute_result", {...})
+        and data from output/error streams with
+        kernel.send_update("stream", {...})
+        
+        :param code: code to be evaluated
+        :type code: string
+        :param silent: Should the request produce
+                       execute_result/stream messages
+                       if true, no output is to be
+                       advertized on the IOPub socket
+        :type silent: bool
+        :param store_history: Should the evaluation
+                              request be logged, in
+                              the execution history,
+                              defaults to True
+                              DEPRECATED: to be handled
+                              by base kernel, ignore.
+        :type store_history: bool, optional
+        :param user_expressions: some depricated hack,
+                                 defaults to None,
+                                 should always be None.
+        :type user_expressions: dict, optional
+        :param allow_stdin: Should the execution process
+                            request stdin input, defaults
+                            to False
+        :type allow_stdin: bool, optional
+        :return: response containing execution reply
+        :rtype: dict or
+                twisted.internet.deferred.Deferred
+        """
+
         raise NotImplementedError
 
     def do_is_complete(self, code):
+        """
+        Test if the code sample is suitable for
+        evaluations. Is more code is to be written?
+        
+        :param code: code to evaluate
+        :type code: string
+        :return: response containing is complete
+                 reply
+        :rtype: dict or
+                twisted.internet.deferred.Deferred
+        """
+
         raise NotImplementedError
     
     def do_complete(self, code, cursor_pos):
+        """
+        Offer code completion to given state
+        
+        :param code: code to evaluate
+        :type code: string
+        :param cursor_pos: position of cursor in
+                           code
+        :type cursor_pos: int
+        :return: response containing is complete
+                 reply
+        :rtype: dict or
+                twisted.internet.deferred.Deferred
+        """
+
         return {
             'matches': [],
             'cursor_start':0,
@@ -195,6 +328,22 @@ class KernelBase(object):
     
     @defer.inlineCallbacks
     def _inspect_proxy(self, code):
+        """
+        Wrap execution request as inspection
+        request. specialized inspection requests
+        do exist in Jupyter, but frontends does
+        not seem to send em. This method wraps
+        code from execution requests to inspection
+        requests to be handled seemlessly by
+        subclassing kernels, and translates response
+        to execute_reply format
+        
+        :param code: code to inspect
+        :type code: string
+        :return: inspection_reply wrapped as execute_reply
+        :rtype: twisted.internet.deferred.Deferred
+        """
+
         stripped_code = code.rstrip("?")
         cursor_pos = len(stripped_code)
         detail_level = min(1, len(code) - len(stripped_code) - 1)
@@ -219,6 +368,23 @@ class KernelBase(object):
         defer.returnValue(response)
     
     def do_inspect(self, code, cursor_pos, detail_level=1):
+        """
+        Inspect the code and return insights such as
+        documentation.
+        
+        :param code: code to inspect
+        :type code: string
+        :param cursor_pos: positon of cursor in code
+        :type cursor_pos: int
+        :param detail_level: level of verbosity (i.e. # of ?s).
+                             higher levels should add more
+                             insights. defaults to 1
+        :param detail_level: int, optional
+        :return: response containing inspect reply
+        :rtype: dict or
+                twisted.internet.deferred.Deferred
+        """
+
         return {
             'status': 'ok',
             'found': False,
@@ -229,6 +395,20 @@ class KernelBase(object):
     @defer.inlineCallbacks
     def do_history(self, hist_access_type, output, raw, session=None,
                    start=None, stop=None, n=None, pattern=None, unique=False):
+        """
+        Fetch execution history from past sessions
+        This method is NOT to be overidden by sub
+        classes
+
+        Note: currently, only 'tail' access is
+        implemented, so any other request yields
+        empty response
+
+        :return: response containing inspect reply
+        :rtype: dict or
+                twisted.internet.deferred.Deferred
+        """
+
         # Most of the arguments seem too rare to be taken care of seriously
         if hist_access_type != "tail" or not n or output:
             defer.returnValue({
@@ -241,19 +421,44 @@ class KernelBase(object):
             })
     
     def do_startup(self):
+        """
+        Callback to do stuff on kernel startup
+        """
         pass
 
     def do_shutdown(self, restart=False):
+        """
+        Callback to do stuff on kernel shutdown
+        :param restart: ignored
+        """
         pass
 
     def do_interrupt(self):
+        """
+        Handle interrupt requests
+        """
         return {}
 
     def send_update(self, msg_type, content):
+        """
+        Send messages on the IOPub socket such
+        as execution_result or (out/err) stream
+        
+        :param msg_type: type of IOPub message
+        :type msg_type: string
+        :param content: message content
+        :type content: dict
+        """
         msg = self.message_manager.build(msg_type, content, self.curr_parent)
         self.iopub_sock.publish(msg)
     
     def signal_stop(self):
+        """
+        Any piece of code (except kernel init)
+        that wants to initiate a shutdown should
+        call this method
+        """
+
         # Multiple sources could request kernel shutdown
         # because only one is sufficient, ignore all other
         # attempts
@@ -263,10 +468,20 @@ class KernelBase(object):
     @staticmethod
     def _endpoint(transport, addr, port,
                   type=txzmq.ZmqEndpointType.bind):
+        """
+        Utility method to build ZMQ urls
+        easily
+        """
+
         url = "{}://{}:{}".format(transport, addr, port)
         return txzmq.ZmqEndpoint(type, url)
     
     @classmethod
     def get_history_path(cls):
+        """
+        Get platform-specific path to past
+        sessions execution history
+        """
+
         return os.path.join(jupyter_data_dir(),
                             "{}_history.db".format(cls.implementation.lower()))

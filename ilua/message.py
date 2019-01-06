@@ -19,12 +19,23 @@ import datetime
 import hashlib
 
 class SignatureException(Exception):
+    """
+    Exception to indicate that a
+    message failed to authenticate
+    """
     pass
 
 # ah "Manager", I use vague words to hide
 # the fact that I should have splitted the
 # class to a parser and a builder
 class MessageManager(object):
+    """
+    Message manager object parses and
+    builds messages to frontends, hiding
+    tiny details from the kernel such
+    as the session key and id.
+    """
+
     _SEPERATOR = b'<IDS|MSG>'
 
     _NAME_TO_SCHEME = {
@@ -32,6 +43,14 @@ class MessageManager(object):
     }
     
     def __init__(self, sign_scheme, key):
+        """
+        :param sign_scheme: name of messages signing
+                            scheme
+        :type sign_scheme: string
+        :param key: data signing key for the session
+        :type key: bytes
+        """
+
         if key == "":
             self.hmac = None
         else:
@@ -42,6 +61,16 @@ class MessageManager(object):
         self.session = str(uuid.uuid4())
 
     def parse(self, message_parts):
+        """
+        Parse message buffer to python dict
+        
+        :param message_parts: message data parts
+        :type message_parts: list
+        :raises SignatureException: on invalid signature
+        :return: parsed message
+        :rtype: dict
+        """
+
         sep_i = message_parts.index(self._SEPERATOR)
         extra_ids = message_parts[:sep_i]
         data_parts = list(message_parts[sep_i+1:])
@@ -71,6 +100,24 @@ class MessageManager(object):
         return msg, extra_ids
 
     def build(self, msg_type, content, parent=None, metadata=None):
+        """
+        Build binary message from parts and metadata
+        
+        :param msg_type: Type of message
+        :type msg_type: string
+        :param content: Content of message
+        :type content: dict
+        :param parent: Message parent, only needed
+                       when message is built while
+                       responding to another message,
+                       defaults to None
+        :param parent: dict, optional
+        :param metadata: Message metadata, defaults to None
+        :param metadata: string, optional
+        :return: binary message in chunks
+        :rtype: list
+        """
+
         parent = parent or {}
         metadata = metadata or {}
 

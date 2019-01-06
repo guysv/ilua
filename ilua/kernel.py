@@ -4,6 +4,12 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-3.0.txt
 # for full license details.
+"""
+Lua Jupyter kernel, extending ilua.kernelbase
+Manages the Lua subprocess and commnad pipes,
+output capturing, frontend requests, and other
+stuff
+"""
 
 import json
 import os
@@ -16,8 +22,6 @@ from distutils.spawn import find_executable
 
 if os.name == 'nt':
     # pylint: disable=E0401
-    import win32api
-    import win32con
     from twisted.internet import _pollingfile
 
 import termcolor
@@ -39,6 +43,11 @@ LUA_PATH_EXTRA = os.path.join(os.path.dirname(__file__), "?.lua")
 _bold_red = lambda s: termcolor.colored(s, "red", attrs=['bold'])
 
 class ILuaKernel(KernelBase):
+    """
+    Jupyter kernel for Lua, managing the communication
+    between a Lua subprocess and a Jupyter frontend
+    """
+
     implementation = 'ILua'
     implementation_version = ilua_version
     language = "lua"

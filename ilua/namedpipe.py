@@ -4,6 +4,10 @@
 # This file is part of ILua which is released under GPLv2.
 # See file LICENSE or go to https://www.gnu.org/licenses/gpl-2.0.txt
 # for full license details.
+"""
+Cross-platform dual-pipes twisted
+transport implementation
+"""
 
 import os
 from twisted.internet import defer
@@ -17,9 +21,20 @@ else:
     raise RuntimeError("os.name {} is not supported".format(os.name))
 
 class PipeAddress(object):
+    """
+    Some dummy object required by twisted
+    """
     pass
 
 class CoupleOPipes(object):
+    """
+    Duplex transport over dual named pipes,
+    one for incoming data and one for outgoing
+    This object can be used as a transport
+    for twisted protocols.
+
+    Implements twisted.internet.iterfaces.ITransport
+    """
 
     def __init__(self, in_pipe_path, out_pipe_path, reactor=None):
         if reactor is None:

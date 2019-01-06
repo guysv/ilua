@@ -15,10 +15,20 @@ kernel to communicate with the frontend
 import txzmq
 
 class HearbeatConnection(txzmq.ZmqREPConnection):
+    """
+    Simple echo socket for heartbeats, init and
+    forget
+    """
+
     def gotMessage(self, messageId, *messageParts):
         self.reply(messageId, *messageParts)
 
 class ShellConnection(txzmq.ZmqRouterConnection):
+    """
+    Shell connection socket, handling requests
+    from the frontend
+    """
+
     def __init__(self, message_handler, *args, **kwargs):
         self.message_handler = message_handler
         super(ShellConnection, self).__init__(*args, **kwargs)
@@ -27,8 +37,13 @@ class ShellConnection(txzmq.ZmqRouterConnection):
         self.message_handler(self, sender_id, messageParts)
     
 class IOPubConnection(txzmq.ZmqPubConnection):
+    """
+    IOPub socket for message broadcasts
+    """
+
     def publish(self, message):
         self.send(message)
 
 class StdinConnection(txzmq.ZmqRouterConnection):
+    # TODO: unused
     pass
