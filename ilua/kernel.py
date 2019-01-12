@@ -59,8 +59,8 @@ class ILuaKernel(KernelBase):
     }
     banner = "ILua {}".format(ilua_version)
     help_links = [
-        {"text": "Official web site of the Lua language",
-         "url": "https://lua.org/"}
+        {"text": "Lua Reference",
+         "url": "https://www.lua.org/manual/5.3/"}
     ]
 
     def __init__(self, *args, **kwargs):
