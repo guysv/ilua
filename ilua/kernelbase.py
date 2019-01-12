@@ -484,4 +484,4 @@ class KernelBase(object):
         """
 
         return os.path.join(os.path.expanduser("~"),
-                            "{}_history.db".format(cls.implementation.lower()))
+                            ".{}_history.db".format(cls.implementation.lower()))
