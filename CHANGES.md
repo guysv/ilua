@@ -1,3 +1,6 @@
+## [0.2.1] - 2019-01-13
+- Tweak: Optimized imports across entire project
+- Bugfix: Removed an unused import that caused jupyter to crash python on windows
 ## [0.2.0] - 2019-01-12
 - Feature: History - ILua now remembers your executed code.
 - Tweak: Kernel application environment variable prefix is now inferred from kernel implementation field
