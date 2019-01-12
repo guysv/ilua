@@ -25,7 +25,7 @@
 --- A lightweight Netstring library for Lua
 -- @module netstring
 
-local netstring = {_version = "0.2.0dev"}
+local netstring = {_version = "0.2.0"}
 
 --- Default maximum data length for read and write operations
 -- @see netstring.read
