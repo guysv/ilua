@@ -9,7 +9,6 @@ ILua's kernel app entry point and command-line tweaks
 """
 
 import os
-from jupyter_console.app import launch_new_instance
 from .appbase import AppBase
 from .kernel import ILuaKernel
 
