@@ -9,7 +9,7 @@ A collection of lexer-involved routines
 for lua code parsing
 """
 
-from itertools import islice, takewhile, dropwhile
+from itertools import islice, takewhile
 from pygments import token, highlight
 from pygments.lexers import _lua_builtins
 from pygments.lexers.scripting import LuaLexer

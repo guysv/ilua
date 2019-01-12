@@ -13,7 +13,6 @@ https://jupyter-client.readthedocs.io/en/stable/kernels.html#handling-messages
 import json
 import hmac
 import uuid
-import codecs
 import getpass
 import datetime
 import hashlib

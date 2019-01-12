@@ -11,12 +11,8 @@ output capturing, frontend requests, and other
 stuff
 """
 
-import json
 import os
 import re
-import functools
-import itertools
-import threading
 
 from distutils.spawn import find_executable
 
@@ -26,9 +22,7 @@ if os.name == 'nt':
 
 import termcolor
 
-from twisted.internet import reactor, protocol, defer, threads
-from twisted.protocols import basic
-from twisted.logger import Logger
+from twisted.internet import protocol, defer
 
 from .kernelbase import KernelBase
 

@@ -10,9 +10,6 @@ from previous sessions, and making it available
 in the frontend
 """
 
-import os
-import json
-import threading
 from twisted.internet import defer
 from twisted.enterprise import adbapi
 

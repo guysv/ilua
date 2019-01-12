@@ -8,7 +8,6 @@
 ILua's kernel app entry point and command-line tweaks
 """
 
-import os
 from .appbase import AppBase
 from .kernel import ILuaKernel
 

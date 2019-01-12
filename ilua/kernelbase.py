@@ -15,7 +15,6 @@ import os
 import txzmq
 from twisted.internet import defer
 from twisted.logger import Logger
-from jupyter_core.paths import jupyter_data_dir
 from . import sockets, message, history
 
 class KernelBase(object):
