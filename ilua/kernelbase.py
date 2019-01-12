@@ -483,5 +483,5 @@ class KernelBase(object):
         sessions execution history
         """
 
-        return os.path.join(jupyter_data_dir(),
+        return os.path.join(os.path.expanduser("~"),
                             "{}_history.db".format(cls.implementation.lower()))
