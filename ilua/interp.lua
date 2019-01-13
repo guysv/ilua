@@ -88,7 +88,10 @@ local function handle_is_complete(code)
     local loaded, err = load_chunk(code, dynamic_env)
     if loaded then
         return 'complete'
-    elseif string.sub(err, -#("<eof>")) == "<eof>" then
+    -- TODO: currently only works on lua implementations
+    --       that mimic the original lua error format
+    --       gopher-lua for example does not work
+    elseif err:match"['\"]?<eof>['\"]?$" then
         return 'incomplete'
     else
         return 'invalid'
