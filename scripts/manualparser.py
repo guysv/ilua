@@ -34,11 +34,11 @@ def get_docs(manual_url, starting_line, ending_line):
 def main():
     docs_dict = {}
     docs_dict.update(get_docs("https://www.lua.org/manual/5.1/manual.html",
-                              4388, 6018))
+                              4386, 6018))
     docs_dict.update(get_docs("https://www.lua.org/manual/5.2/manual.html",
-                              5217, 7071))
+                              5215, 7071))
     docs_dict.update(get_docs("https://www.lua.org/manual/5.3/manual.html",
-                              5308, 7227))
+                              5306, 7227))
     json.dump(docs_dict, sys.stdout, indent=4)
 
 if __name__ == '__main__':
