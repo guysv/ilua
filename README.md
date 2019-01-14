@@ -8,7 +8,7 @@
  * Code completions
  * Code inspection
    * Retreive function documentation
-   * Can even retreive the function source if available (invoked with ??)
+   * Can even retrieve the function source if available (invoked with ??)
  * Pretty-printed results
  * Access last result with _
  * Cross-session execution history
