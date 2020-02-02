@@ -16,9 +16,6 @@
  * No native dependencies for Lua
  * Python's pip based installation
 
-## Project Status
-ILua is under heavy development, but I would still really appreciate if you could open an issue about what bothers you, or even send a pull request!
-
 ## Installation
 ```bash
 pip install ilua
