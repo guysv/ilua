@@ -7,7 +7,7 @@
    * Works with Lua5.1-5.3, [LuaJIT](http://luajit.org/) and even some exotic implementations like [GopherLua](https://github.com/yuin/gopher-lua)
  * Code completions
  * Code inspection
-   * Retreive function documentation
+   * Retrieve function documentation
    * Can even retrieve the function source if available (invoked with ??)
  * Pretty-printed results
  * Access last result with _
