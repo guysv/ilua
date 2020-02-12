@@ -1,3 +1,6 @@
+# Generated version file
+/ilua/version.py
+
 # Compiled Lua sources
 luac.out
 
