@@ -28,4 +28,4 @@ python setup.py install_data -d ~/.local # pip install -e . forgets data_files..
 ```
 
 ## A Bit on ILua's Architecture
-As opposed to existing Lua Jupyter kernels which implement the Jupyter protocol in Lua (and depend on lzmq which is a native module), ILua implements the communication with Jupyter in Python, which in turn talks with Lua via named-pipe IPC. This frees ILua from being bounded to a single Lua implementation ABI.
+As opposed to existing Lua Jupyter kernels which implement the Jupyter protocol in Lua (and depend on lzmq which is a native module), ILua implements the communication with Jupyter in Python, which in turn talks with Lua via named-pipe IPC. This frees ILua from being bounded to a single Lua implementation ABI. The Lua interpreter only needs to respect the `$LUA_PATH` environment variable and execute a file given as the first argument.
