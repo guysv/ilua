@@ -5,6 +5,7 @@
  * Lua-implementation agnostic
    * Should work with any lua interpreter out of the box
    * Works with Lua5.1-5.3, [LuaJIT](http://luajit.org/) and even some exotic implementations like [GopherLua](https://github.com/yuin/gopher-lua)
+   * [Easy to port to embedded interpreters](https://eng.hroncok.cz/2020/05/14/ilua-rpm-console)
  * Code completions
  * Code inspection
    * Retrieve function documentation
