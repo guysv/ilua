@@ -29,7 +29,7 @@ from .kernelbase import KernelBase
 from .namedpipe import CoupleOPipes, get_pipe_path
 from .proto import InterpreterProtocol, OutputCapture
 from .inspector import Inspector
-from .version import version as ilua_version
+from .version import __version__ as ilua_version
 
 INTERPRETER_SCRIPT = os.path.join(os.path.dirname(__file__), "interp.lua")
 LUA_PATH_EXTRA = os.path.join(os.path.dirname(__file__), "?.lua")
