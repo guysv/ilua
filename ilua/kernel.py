@@ -11,6 +11,7 @@ output capturing, frontend requests, and other
 stuff
 """
 
+import json
 import os
 import re
 
@@ -56,6 +57,10 @@ class ILuaKernel(KernelBase):
         {"text": "Lua Reference",
          "url": "https://www.lua.org/manual/"}
     ]
+
+    # Allow kernel definitions to override the help links
+    if "ILUA_HELP_LINKS" in os.environ:
+        help_links = json.loads(os.environ["ILUA_HELP_LINKS"])
 
     def __init__(self, *args, **kwargs):
         super(ILuaKernel, self).__init__(*args, **kwargs)
