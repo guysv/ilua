@@ -18,7 +18,6 @@ import re
 
 from distutils.spawn import find_executable
 import socket
-from tkinter.messagebox import NO
 
 import twisted
 
