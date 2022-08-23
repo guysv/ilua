@@ -21,7 +21,7 @@ import socket
 
 import twisted
 
-from ilua import websocket
+from . import websocket
 
 if os.name == 'nt':
     # pylint: disable=E0401

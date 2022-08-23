@@ -37,11 +37,11 @@ class OutputCapture(protocol.ProcessProtocol):
         self.transport.closeStdin()
 
     def outReceived(self, data):
-        self.log.debug("Received stdout data: {data}", data=repr(data))
+        self.log.error("Received stdout data: {data}", data=repr(data))
         self.message_sink("stdout", data.decode("utf8", "replace"))
 
     def errReceived(self, data):
-        self.log.debug("Received stdout data: {data}", data=repr(data))
+        self.log.error("Received stdout data: {data}", data=repr(data))
         self.message_sink("stderr", data.decode("utf8", "replace"))
 
 class InterpreterProtocol(basic.NetstringReceiver):
