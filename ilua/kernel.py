@@ -11,11 +11,17 @@ output capturing, frontend requests, and other
 stuff
 """
 
+import asyncio
 import json
 import os
 import re
 
 from distutils.spawn import find_executable
+import socket
+
+import twisted
+
+from . import websocket
 
 if os.name == 'nt':
     # pylint: disable=E0401
@@ -31,9 +37,15 @@ from .namedpipe import CoupleOPipes, get_pipe_path
 from .proto import InterpreterProtocol, OutputCapture
 from .inspector import Inspector
 from .version import __version__ as ilua_version
+from twisted.internet import reactor
+
+from autobahn.twisted.websocket import WebSocketClientFactory, \
+    WebSocketClientProtocol, \
+    create_client_agent
 
 INTERPRETER_SCRIPT = os.path.join(os.path.dirname(__file__), "interp.lua")
 LUA_PATH_EXTRA = os.path.join(os.path.dirname(__file__), "?.lua")
+OPENRESTY_LUA_PATH_EXTRA = os.path.join(os.path.dirname(__file__), "openresty/?.lua")
 
 _bold_red = lambda s: termcolor.colored(s, "red", attrs=['bold'])
 
@@ -86,22 +98,62 @@ class ILuaKernel(KernelBase):
                                                        "path?".format(
                                                            self.lua_interpreter))
 
-        # pylint: disable=no-member
-        if os.name == "nt":
-            self.lua_process = self.reactor.spawnProcess(proto, None,
-                                                         [self.lua_interpreter,
-                                                          INTERPRETER_SCRIPT],
-                                                         None)
-        else:
+        if self.lua_interpreter == "openresty":
+            assert os.name != "nt", ("Could not support '{}', "
+                                                    "is windows ".format(
+                                                    self.lua_interpreter))
+            self.agent_port = 8081
+            while True:
+                s = socket.socket()
+                try:
+                    s.connect(("127.0.0.1", self.agent_port))
+                    self.agent_port += 1
+                    continue
+                except socket.error:
+                    break
+
+            config_data = ""
+            with open(os.path.dirname(__file__)+"/openresty/nginx.conf", "r") as file:
+                config_data = file.read()
+            config_data = config_data.replace("{PORT}", str(self.agent_port))
+            config_data = config_data.replace("{LUALIB}", OPENRESTY_LUA_PATH_EXTRA + ";")
+            with open("/tmp/nginx.conf", "w") as file:
+                file.write(config_data)
+            if not os.path.exists("/tmp/logs"):
+                os.makedirs("/tmp/logs")
             self.lua_process = self.reactor.spawnProcess(proto,
-                                                         self.lua_interpreter,
-                                                         [self.lua_interpreter,
-                                                          INTERPRETER_SCRIPT],
-                                                         None)
+                                                        self.lua_interpreter,
+                                                        [self.lua_interpreter,
+                                                        "-p", "/tmp", "-c", "nginx.conf", "-g", "daemon off;"],
+                                                        None)
+
+            return
+        else:
+            # pylint: disable=no-member
+            if os.name == "nt":
+                self.lua_process = self.reactor.spawnProcess(proto, None,
+                                                            [self.lua_interpreter,
+                                                            INTERPRETER_SCRIPT],
+                                                            None)
+            else:
+                self.lua_process = self.reactor.spawnProcess(proto,
+                                                            self.lua_interpreter,
+                                                            [self.lua_interpreter,
+                                                            INTERPRETER_SCRIPT],
+                                                            None)
 
     @defer.inlineCallbacks
     def do_startup(self):
-        self.proto = yield self.pipes.connect(
+        if self.lua_interpreter == "openresty":
+            self.agent = create_client_agent(reactor)
+            while True:
+                try:
+                    self.proto = yield self.agent.open("ws://127.0.0.1:{}/ws".format(self.agent_port), options={},protocol_class=websocket.WSClientProtocol)
+                except twisted.internet.error.ConnectionRefusedError:
+                    continue
+                break
+        else:
+            self.proto = yield self.pipes.connect(
             protocol.Factory.forProtocol(InterpreterProtocol))
 
         returned = yield self.proto.sendRequest({"type": "execute",
@@ -278,5 +330,8 @@ class ILuaKernel(KernelBase):
         self.log.warn("ILua does not support keyboard interrupts")
 
     def do_shutdown(self):
-        self.pipes.loseConnection()
-        self.lua_process.signalProcess("KILL")
+        if self.lua_interpreter == "openresty":
+            self.lua_process.signalProcess("TERM")
+        else:
+            self.pipes.loseConnection()
+            self.lua_process.signalProcess("KILL")
