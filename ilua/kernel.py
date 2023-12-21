@@ -81,6 +81,8 @@ class ILuaKernel(KernelBase):
             'LUA_PATH': os.environ.get("LUA_PATH", ";") + ";"  + LUA_PATH_EXTRA
         })
 
+        env = os.environ.copy()
+
         assert find_executable(self.lua_interpreter), ("Could not find '{}', "
                                                        "is Lua in the system "
                                                        "path?".format(
@@ -91,13 +93,13 @@ class ILuaKernel(KernelBase):
             self.lua_process = self.reactor.spawnProcess(proto, None,
                                                          [self.lua_interpreter,
                                                           INTERPRETER_SCRIPT],
-                                                         None)
+                                                         env)
         else:
             self.lua_process = self.reactor.spawnProcess(proto,
                                                          self.lua_interpreter,
                                                          [self.lua_interpreter,
                                                           INTERPRETER_SCRIPT],
-                                                         None)
+                                                         env)
 
     @defer.inlineCallbacks
     def do_startup(self):
